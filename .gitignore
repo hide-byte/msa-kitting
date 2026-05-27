@@ -1,0 +1,20 @@
+# 機密値・ローカル設定（git に乗せない）
+config/*.local.json
+config/secrets/
+*.local.ps1
+
+# ログ
+*.log
+logs/
+msa-kitting-logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Windows generated
+*.lnk.bak

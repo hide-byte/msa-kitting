@@ -1,0 +1,36 @@
+{
+  "_comment": "winget で一括インストールするアプリリスト。required=true で必須扱い、失敗時 setup.ps1 が abort する。Office 本体は ODT 経由のため別 module で対応予定（Phase 1.5）。",
+  "_how_to_find_id": "新しいアプリを追加する時は 'winget search <キーワード>' で正式 ID を調べてから記載",
+  "apps": [
+    {
+      "id": "Google.Chrome",
+      "name": "Google Chrome",
+      "required": true,
+      "note": "全社員必須のブラウザ"
+    },
+    {
+      "id": "Adobe.Acrobat.Reader.64-bit",
+      "name": "Adobe Acrobat Reader (64-bit)",
+      "required": true,
+      "note": "PDF 表示（無料版）"
+    },
+    {
+      "id": "Microsoft.PowerToys",
+      "name": "Microsoft PowerToys",
+      "required": false,
+      "note": "Windows 公式の生産性向上ツール"
+    },
+    {
+      "id": "Microsoft.PowerShell",
+      "name": "PowerShell 7",
+      "required": false,
+      "note": "PowerShell の最新版（互換のため Win 標準 5.1 も残る）"
+    },
+    {
+      "id": "VideoLAN.VLC",
+      "name": "VLC media player",
+      "required": false,
+      "note": "動画再生（社内動画教材等で使用）"
+    }
+  ]
+}
