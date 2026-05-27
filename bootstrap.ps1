@@ -21,7 +21,7 @@
 [CmdletBinding()]
 param(
     # GitHub リポジトリの owner/repo
-    [string]$RepoSlug = 'OWNER/msa-kitting',
+    [string]$RepoSlug = 'hide-byte/msa-kitting',
     # Release tag (latest を使う場合は 'latest')
     [string]$Ref = 'latest',
     # 作業ディレクトリ

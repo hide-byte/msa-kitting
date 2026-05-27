@@ -38,8 +38,7 @@
 - そのまま **Enter** キーを押す
 
 ```powershell
-# こんな感じの 1 行が貼られます（実際の URL は配布時に決まります）
-Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://github.com/.../bootstrap.ps1 | iex
+Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex
 ```
 
 ## ステップ 3: 対話入力に答える

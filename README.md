@@ -31,10 +31,10 @@ MSA（株式会社マルチサービスエージェント）の新規 Windows PC
 
 詳しくは [`docs/employee-guide.md`](docs/employee-guide.md) を読んでください。
 
+**社員に渡す 1 行コマンド**:
+
 ```powershell
-# 管理者として起動した PowerShell に貼る
-Set-ExecutionPolicy Bypass -Scope Process -Force
-irm <bootstrap URL> | iex
+Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex
 ```
 
 途中で「端末番号」「利用者名」を聞かれるので、岡島さんから渡された情報を入力してください。
