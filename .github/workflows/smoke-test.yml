@@ -89,8 +89,11 @@ jobs:
 
       - name: Verify installed apps (only when winget available)
         if: steps.env.outputs.winget_available == 'true' && (success() || failure())
+        continue-on-error: true
         shell: pwsh
         run: |
+          # winget list は未インストール時に exit 非ゼロを返すので、ステップ全体は continue-on-error で握りつぶす
+          $ErrorActionPreference = 'Continue'
           Write-Host "=== winget list (Chrome / Acrobat / PowerToys / PowerShell / VLC) ==="
           @(
             'Google.Chrome',
@@ -100,7 +103,7 @@ jobs:
             'VideoLAN.VLC'
           ) | ForEach-Object {
             Write-Host "--- $_ ---"
-            winget list --id $_ --exact --accept-source-agreements 2>&1
+            try { winget list --id $_ --exact --accept-source-agreements 2>&1 | Out-Host } catch { Write-Host "(not installed or query failed)" }
           }
 
       - name: Upload setup logs

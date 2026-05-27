@@ -46,7 +46,7 @@ function Invoke-Module {
         [string]$Name,
         [string]$Path,
         [string]$SkipKey,
-        [hashtable]$Args = @{}
+        [hashtable]$ModuleArgs = @{}
     )
     Write-Step $Name
     if ($script:SkipList -contains $SkipKey) {
@@ -58,7 +58,7 @@ function Invoke-Module {
         return
     }
     try {
-        & $Path @Args
+        & $Path @ModuleArgs
         Write-Host "[OK] $Name 完了" -ForegroundColor Green
     } catch {
         Write-Host "[ERROR] $Name 失敗: $_" -ForegroundColor Red
@@ -89,19 +89,19 @@ try {
     Invoke-Module -Name 'Windows 既定設定' `
         -SkipKey 'Set-WindowsDefaults' `
         -Path (Join-Path $modulesDir 'Set-WindowsDefaults.ps1') `
-        -Args @{ ConfigPath = (Join-Path $configDir 'windows-defaults.json') }
+        -ModuleArgs @{ ConfigPath = (Join-Path $configDir 'windows-defaults.json') }
 
     # Step 2: アプリ一括インストール
     Invoke-Module -Name 'アプリ一括インストール (winget)' `
         -SkipKey 'Install-Apps' `
         -Path (Join-Path $modulesDir 'Install-Apps.ps1') `
-        -Args @{ ConfigPath = (Join-Path $configDir 'apps.json') }
+        -ModuleArgs @{ ConfigPath = (Join-Path $configDir 'apps.json') }
 
     # Step 3: 端末資産登録（対話）
     Invoke-Module -Name '端末資産登録' `
         -SkipKey 'Register-Asset' `
         -Path (Join-Path $modulesDir 'Register-Asset.ps1') `
-        -Args @{ OutputDir = $logDir }
+        -ModuleArgs @{ OutputDir = $logDir }
 
     # 完了サマリ
     Write-Host ''
