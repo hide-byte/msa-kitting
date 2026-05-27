@@ -20,46 +20,88 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # winget は GitHub-hosted windows-latest (Server) ではデフォルト未導入
-      - name: Setup winget
-        uses: Cyberboss/install-winget@v1
-
-      - name: PowerShell version
+      - name: Check runner environment
+        id: env
         shell: pwsh
         run: |
           $PSVersionTable | Format-List
-          winget --version
+          $hasWinget = $null -ne (Get-Command winget -ErrorAction SilentlyContinue)
+          Write-Host "winget available: $hasWinget"
+          if ($hasWinget) {
+            winget --version
+            Write-Output "winget_available=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Output "winget_available=false" >> $env:GITHUB_OUTPUT
+          }
 
-      - name: Run setup.ps1 (skip 端末資産登録 = 対話のため)
+      - name: Syntax parse check (全 .ps1)
+        shell: pwsh
+        run: |
+          $files = @(
+            './bootstrap.ps1',
+            './setup.ps1',
+            './modules/Install-Apps.ps1',
+            './modules/Set-WindowsDefaults.ps1',
+            './modules/Register-Asset.ps1'
+          )
+          $totalErrors = 0
+          foreach ($f in $files) {
+            $script = Get-Content $f -Raw
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseInput($script, [ref]$null, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              Write-Host "❌ $f" -ForegroundColor Red
+              $errors | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+              $totalErrors += $errors.Count
+            } else {
+              Write-Host "✅ $f parse OK" -ForegroundColor Green
+            }
+          }
+          if ($totalErrors -gt 0) { exit 1 }
+
+      - name: JSON validation (config)
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path ./config -Filter *.json -ErrorAction SilentlyContinue
+          foreach ($f in $files) {
+            try {
+              Get-Content $f.FullName -Raw | ConvertFrom-Json | Out-Null
+              Write-Host "✅ $($f.Name) valid JSON" -ForegroundColor Green
+            } catch {
+              Write-Host "❌ $($f.Name) JSON parse error: $_" -ForegroundColor Red
+              exit 1
+            }
+          }
+
+      - name: Run setup.ps1 with all winget-dependent modules skipped (when winget absent)
+        if: steps.env.outputs.winget_available != 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./setup.ps1 -RepoRoot $PWD -SkipModules @('Install-Apps', 'Register-Asset')
+
+      - name: Run setup.ps1 with Install-Apps enabled (when winget present)
+        if: steps.env.outputs.winget_available == 'true'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           ./setup.ps1 -RepoRoot $PWD -SkipModules @('Register-Asset')
 
-      - name: Verify installed apps via winget list
-        if: success() || failure()
+      - name: Verify installed apps (only when winget available)
+        if: steps.env.outputs.winget_available == 'true' && (success() || failure())
         shell: pwsh
         run: |
           Write-Host "=== winget list (Chrome / Acrobat / PowerToys / PowerShell / VLC) ==="
-          winget list --id Google.Chrome --exact --accept-source-agreements 2>&1
-          winget list --id Adobe.Acrobat.Reader.64-bit --exact --accept-source-agreements 2>&1
-          winget list --id Microsoft.PowerToys --exact --accept-source-agreements 2>&1
-          winget list --id Microsoft.PowerShell --exact --accept-source-agreements 2>&1
-          winget list --id VideoLAN.VLC --exact --accept-source-agreements 2>&1
-
-      - name: Verify Register-Asset.ps1 in non-interactive mode (smoke only)
-        if: success() || failure()
-        shell: pwsh
-        run: |
-          # 対話プロンプトを止めるため Read-Host を一時的にスタブ化してparse確認
-          $script = Get-Content ./modules/Register-Asset.ps1 -Raw
-          $errors = $null
-          [System.Management.Automation.Language.Parser]::ParseInput($script, [ref]$null, [ref]$errors) | Out-Null
-          if ($errors.Count -gt 0) {
-            $errors | ForEach-Object { Write-Host "[PARSE ERROR] $_" -ForegroundColor Red }
-            exit 1
+          @(
+            'Google.Chrome',
+            'Adobe.Acrobat.Reader.64-bit',
+            'Microsoft.PowerToys',
+            'Microsoft.PowerShell',
+            'VideoLAN.VLC'
+          ) | ForEach-Object {
+            Write-Host "--- $_ ---"
+            winget list --id $_ --exact --accept-source-agreements 2>&1
           }
-          Write-Host "[OK] Register-Asset.ps1 parse 成功"
 
       - name: Upload setup logs
         if: always()
