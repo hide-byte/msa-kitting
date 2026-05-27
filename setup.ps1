@@ -16,7 +16,9 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
-    [string]$RepoRoot
+    [string]$RepoRoot,
+    # スキップしたいモジュール名（テスト用。例: 'Register-Asset'）
+    [string[]]$SkipModules = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -43,9 +45,14 @@ function Invoke-Module {
     param(
         [string]$Name,
         [string]$Path,
+        [string]$SkipKey,
         [hashtable]$Args = @{}
     )
     Write-Step $Name
+    if ($script:SkipList -contains $SkipKey) {
+        Write-Host "[SKIP] $Name はスキップ指定済 ($SkipKey)" -ForegroundColor Yellow
+        return
+    }
     if (-not (Test-Path $Path)) {
         Write-Host "[SKIP] モジュール未配置: $Path" -ForegroundColor Yellow
         return
@@ -60,6 +67,8 @@ function Invoke-Module {
         throw
     }
 }
+
+$script:SkipList = $SkipModules
 
 # ──────────────────────────────────────────────
 # メイン
@@ -78,16 +87,19 @@ try {
 
     # Step 1: Windows 既定設定
     Invoke-Module -Name 'Windows 既定設定' `
+        -SkipKey 'Set-WindowsDefaults' `
         -Path (Join-Path $modulesDir 'Set-WindowsDefaults.ps1') `
         -Args @{ ConfigPath = (Join-Path $configDir 'windows-defaults.json') }
 
     # Step 2: アプリ一括インストール
     Invoke-Module -Name 'アプリ一括インストール (winget)' `
+        -SkipKey 'Install-Apps' `
         -Path (Join-Path $modulesDir 'Install-Apps.ps1') `
         -Args @{ ConfigPath = (Join-Path $configDir 'apps.json') }
 
     # Step 3: 端末資産登録（対話）
     Invoke-Module -Name '端末資産登録' `
+        -SkipKey 'Register-Asset' `
         -Path (Join-Path $modulesDir 'Register-Asset.ps1') `
         -Args @{ OutputDir = $logDir }
 

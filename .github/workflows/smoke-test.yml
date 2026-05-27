@@ -1,0 +1,70 @@
+name: smoke-test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'setup.ps1'
+      - 'bootstrap.ps1'
+      - 'modules/**'
+      - 'config/**'
+      - '.github/workflows/smoke-test.yml'
+
+jobs:
+  smoke:
+    name: Windows runner smoke test
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # winget は GitHub-hosted windows-latest (Server) ではデフォルト未導入
+      - name: Setup winget
+        uses: Cyberboss/install-winget@v1
+
+      - name: PowerShell version
+        shell: pwsh
+        run: |
+          $PSVersionTable | Format-List
+          winget --version
+
+      - name: Run setup.ps1 (skip 端末資産登録 = 対話のため)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./setup.ps1 -RepoRoot $PWD -SkipModules @('Register-Asset')
+
+      - name: Verify installed apps via winget list
+        if: success() || failure()
+        shell: pwsh
+        run: |
+          Write-Host "=== winget list (Chrome / Acrobat / PowerToys / PowerShell / VLC) ==="
+          winget list --id Google.Chrome --exact --accept-source-agreements 2>&1
+          winget list --id Adobe.Acrobat.Reader.64-bit --exact --accept-source-agreements 2>&1
+          winget list --id Microsoft.PowerToys --exact --accept-source-agreements 2>&1
+          winget list --id Microsoft.PowerShell --exact --accept-source-agreements 2>&1
+          winget list --id VideoLAN.VLC --exact --accept-source-agreements 2>&1
+
+      - name: Verify Register-Asset.ps1 in non-interactive mode (smoke only)
+        if: success() || failure()
+        shell: pwsh
+        run: |
+          # 対話プロンプトを止めるため Read-Host を一時的にスタブ化してparse確認
+          $script = Get-Content ./modules/Register-Asset.ps1 -Raw
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseInput($script, [ref]$null, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Host "[PARSE ERROR] $_" -ForegroundColor Red }
+            exit 1
+          }
+          Write-Host "[OK] Register-Asset.ps1 parse 成功"
+
+      - name: Upload setup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-logs
+          path: C:\msa-kitting-logs\
+          if-no-files-found: warn
