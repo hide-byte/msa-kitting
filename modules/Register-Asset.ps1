@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   端末番号・利用者名等を対話で取得し、ローカル CSV に追記する。
@@ -32,7 +32,7 @@ function Read-Required {
 
 Write-Host ''
 Write-Host '─── 端末資産登録 ───' -ForegroundColor Cyan
-Write-Host '岡島さんから渡された情報を入力してください' -ForegroundColor Gray
+Write-Host '端末番号と利用者名を入力してください（分からない項目は Enter で飛ばせます）' -ForegroundColor Gray
 Write-Host ''
 
 $assetId  = Read-Required '端末番号 (例: MSA-PC-042)'
@@ -58,7 +58,7 @@ $record = [PSCustomObject]@{
     OsName         = $os.Caption
     OsVersion      = $os.Version
     OsBuild        = $os.BuildNumber
-    InstallDate    = $os.InstallDate.ToString('yyyy-MM-dd')
+    InstallDate    = $(if ($os.InstallDate) { $os.InstallDate.ToString('yyyy-MM-dd') } else { '' })
 }
 
 # コンピュータ名を AssetId に合わせる提案（実行は別途、再起動が必要なため）

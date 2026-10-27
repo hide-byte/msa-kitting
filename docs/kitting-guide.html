@@ -1,0 +1,577 @@
+<title>MSA キッティング手順</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Kaku+Gothic+New:wght@700&display=swap">
+<style>
+  /* layout: 1 列・本文 720px・各ステップ = 説明 + Windows 画面の模型（白いウィンドウ／黒いターミナル） */
+  :root {
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --fg: #1a2230;
+    --muted: #5d6b7d;
+    --line: #d7dde6;
+    --accent: #0b5fc4;
+    --accent-ink: #ffffff;
+    --ok: #1f8a4c;
+    --warn: #b4731a;
+    --bad: #c23b2e;
+    --mark: #ff7a00;
+    --font-body: "Noto Sans JP", system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    --font-display: "Zen Kaku Gothic New", "Noto Sans JP", system-ui, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", "Consolas", "SFMono-Regular", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f141b; --surface: #171e27; --fg: #e7ecf3; --muted: #9aa7b8; --line: #2a3442;
+      --accent: #5ea3ff; --accent-ink: #0b1320; --ok: #4ccb7f; --warn: #e3a94a; --bad: #f07a6e; --mark: #ff9a3c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f141b; --surface: #171e27; --fg: #e7ecf3; --muted: #9aa7b8; --line: #2a3442;
+    --accent: #5ea3ff; --accent-ink: #0b1320; --ok: #4ccb7f; --warn: #e3a94a; --bad: #f07a6e; --mark: #ff9a3c;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--font-body); font-size: 16px; line-height: 1.75;
+    padding-block: 0 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.3; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(26px, 5vw, 34px); }
+  h2 { font-size: 21px; display: flex; align-items: center; gap: 10px; }
+  h3 { font-size: 16px; margin-top: 18px; }
+  p { margin: 10px 0; }
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  code { font-family: var(--font-mono); font-size: 0.92em; background: color-mix(in srgb, var(--fg) 8%, transparent); padding: 1px 6px; border-radius: 4px; }
+  kbd { font-family: var(--font-mono); font-size: 0.85em; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; background: var(--surface); }
+
+  /* header */
+  .hero { padding-block: 28px 18px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+  .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 10px; color: var(--muted); font-size: 14px; }
+  .pcbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 16px; }
+  .pcbtn { font: inherit; font-size: 14px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+  .pcbtn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .prog { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); }
+
+  /* step index */
+  .index { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 12px; margin-bottom: 8px; }
+  .index a { font-size: 13px; text-decoration: none; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+  .index a:hover { border-color: var(--accent); }
+
+  /* steps */
+  section.step { margin-block: 28px; padding-block: 22px; border-top: 1px solid var(--line); }
+  .num { flex: none; width: 32px; height: 32px; border-radius: 8px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-size: 15px; font-family: var(--font-mono); }
+  section.is-done .num { background: var(--ok); }
+  section.is-done h2 { color: var(--muted); }
+  .time { font-size: 13px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  ol.flow { padding-left: 1.4em; margin: 10px 0; }
+  ol.flow li { margin: 6px 0; }
+  ol.flow li::marker { color: var(--accent); font-weight: 700; }
+  .done-row { display: flex; align-items: center; gap: 10px; margin-top: 18px; padding: 10px 14px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); border: 1px dashed var(--line); }
+  .done-row input { width: 20px; height: 20px; accent-color: var(--ok); }
+  .done-row label { cursor: pointer; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 10px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12.5px; }
+  .tablewrap { overflow-x: auto; }
+
+  .note { border-left: 3px solid var(--warn); padding: 8px 14px; margin: 14px 0; background: color-mix(in srgb, var(--warn) 8%, var(--surface)); border-radius: 0 8px 8px 0; font-size: 14.5px; }
+  .note.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--surface)); }
+  .note.ok { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, var(--surface)); }
+  details { margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+  summary { cursor: pointer; padding: 10px 14px; font-weight: 500; }
+  details > div { padding: 0 14px 14px; }
+
+  /* 画面の模型 = 常に Windows の見た目（白い窓・黒い端末）。テーマで変えない */
+  .shot { margin: 14px 0 6px; }
+  .shot .cap { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .win { background: #ffffff; color: #1b1b1b; border: 1px solid #c6cbd3; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.14); overflow: hidden; font-size: 14px; line-height: 1.5; max-width: 100%; }
+  .win-title { display: flex; align-items: center; gap: 8px; padding: 7px 12px; background: #f0f0f0; border-bottom: 1px solid #e0e0e0; font-size: 12px; color: #444; }
+  .win-title .ctl { margin-left: auto; letter-spacing: 10px; color: #555; font-family: var(--font-mono); }
+  .win-body { padding: 18px 20px; }
+  .win h4 { margin: 0 0 4px; font-size: 18px; font-weight: 600; font-family: var(--font-body); color: #1b1b1b; }
+  .win .sub { color: #555; font-size: 13px; margin: 0 0 12px; }
+  .opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid #d8d8d8; border-radius: 6px; margin: 8px 0; background: #fafafa; }
+  .opt .radio { width: 16px; height: 16px; border: 2px solid #6b6b6b; border-radius: 50%; flex: none; margin-top: 3px; background: #fff; }
+  .opt.sel .radio { border-color: #0067c0; background: #0067c0; box-shadow: inset 0 0 0 3px #fff; }
+  .opt b { display: block; font-weight: 600; }
+  .opt span { color: #555; font-size: 12.5px; }
+  .field { border: 1px solid #8a8a8a; border-bottom: 2px solid #0067c0; border-radius: 4px; padding: 7px 10px; color: #777; font-size: 13.5px; margin: 10px 0; background: #fff; }
+  .field.active { color: #1b1b1b; }
+  .links { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 14px; }
+  .lnk { color: #0067c0; text-decoration: underline; font-size: 13px; display: inline-block; align-self: flex-start; }
+  .btnrow { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+  .btn-win { display: inline-block; padding: 6px 26px; border-radius: 4px; background: #0067c0; color: #fff; font-size: 13.5px; }
+  .btn-win.sec { background: #fff; color: #1b1b1b; border: 1px solid #adadad; }
+  .hl { outline: 3px solid var(--mark); outline-offset: 3px; border-radius: 6px; position: relative; }
+  .call { position: absolute; top: -13px; left: -13px; width: 26px; height: 26px; border-radius: 50%; background: var(--mark); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 13px; font-family: var(--font-mono); box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+  .menu { list-style: none; margin: 0; padding: 6px; background: #f9f9f9; border: 1px solid #c6cbd3; border-radius: 8px; box-shadow: 0 8px 28px rgba(0,0,0,.14); width: 260px; max-width: 100%; font-size: 13.5px; color: #1b1b1b; }
+  .menu li { padding: 6px 12px; border-radius: 4px; }
+  .menu li.sep { border-top: 1px solid #e0e0e0; padding: 0; margin: 4px 0; }
+  .menu li.hl { background: #e5f1fb; }
+  .term { background: #0c0c0c; color: #cccccc; border-radius: 8px; padding: 14px 16px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; overflow-x: auto; white-space: pre; box-shadow: 0 8px 28px rgba(0,0,0,.25); }
+  .term .c { color: #3bd6ff; } .term .g { color: #4ee07a; } .term .r { color: #ff6b6b; } .term .y { color: #ffd166; } .term .w { color: #f2f2f2; } .term .d { color: #7d7d7d; } .term .m { color: #e38cff; }
+  .term .cur { background: #cccccc; color: #0c0c0c; }
+  .uac { max-width: 420px; }
+  .uac .shield { display: inline-block; width: 14px; height: 16px; background: linear-gradient(90deg, #2b6fd8 50%, #f2c200 50%); border-radius: 2px 2px 7px 7px; vertical-align: -2px; margin-right: 6px; }
+  .wintask { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid #d8d8d8; border-radius: 6px; background: #fafafa; }
+  .wintask .ico { width: 36px; height: 36px; border-radius: 8px; background: #c8102e; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 16px; flex: none; }
+  .wintask .dots { margin-left: auto; font-weight: 700; letter-spacing: 2px; color: #333; }
+  .popmenu { list-style: none; margin: 6px 0 0 auto; padding: 4px; width: 160px; background: #fff; border: 1px solid #c6cbd3; border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.18); font-size: 13px; color: #1b1b1b; }
+  .popmenu li { padding: 6px 10px; border-radius: 4px; }
+  .popmenu li.hl { background: #e5f1fb; }
+
+  /* command box */
+  .cmdbox { position: relative; margin: 12px 0; }
+  .cmdbox pre { margin: 0; background: #0c0c0c; color: #f2f2f2; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; padding: 14px 16px 14px; border-radius: 8px; overflow-x: auto; white-space: pre; }
+  .copy { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12.5px; padding: 5px 12px; border-radius: 6px; border: 1px solid #555; background: #1f1f1f; color: #f2f2f2; cursor: pointer; }
+  .copy:hover { border-color: #aaa; }
+  .copy.done { background: var(--ok); border-color: var(--ok); color: #fff; }
+  textarea.fallback { position: absolute; left: -9999px; top: 0; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 14px 0; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+  .card h3 { margin-top: 0; font-size: 15px; }
+  .card p { font-size: 14px; margin: 6px 0 0; }
+  footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+  @media (max-width: 480px) {
+    .win-body { padding: 14px; }
+    .term { font-size: 11.5px; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">MSA 社内 IT</div>
+    <h1>新しい PC のキッティング手順</h1>
+    <div class="meta">
+      <span>対象: Dell ノート 2 台（Core i5-1334U / Windows 11 Pro）</span>
+      <span>所要: 1 台 40〜70 分</span>
+      <span>必要スキル: コピーと貼り付けができれば OK</span>
+    </div>
+    <div class="pcbar">
+      <span class="small muted">いま作業中の PC:</span>
+      <button class="pcbtn" data-pc="1" id="pc1" aria-pressed="true">1 台目</button>
+      <button class="pcbtn" data-pc="2" id="pc2" aria-pressed="false">2 台目</button>
+      <span class="prog">完了 <span id="prog">0 / 8</span></span>
+    </div>
+    <p class="small muted">チェックはこのブラウザだけに記憶されます。スマホでこのページを開いて、PC を操作しながら進めてください。</p>
+  </header>
+
+  <nav class="index" aria-label="手順の目次">
+    <a href="#step0">0. 用意するもの</a>
+    <a href="#step1">1. 初期設定</a>
+    <a href="#step2">2. ターミナルを開く</a>
+    <a href="#step3">3. コマンドを貼る</a>
+    <a href="#step4">4. 入力</a>
+    <a href="#step5">5. 完了確認</a>
+    <a href="#step6">6. 仕上げ</a>
+    <a href="#step7">7. 台帳</a>
+    <a href="#fail">失敗したとき</a>
+  </nav>
+
+  <!-- 0 -->
+  <section class="step" id="step0">
+    <h2><span class="num">0</span>用意するもの<span class="time">5 分</span></h2>
+    <div class="tablewrap">
+    <table>
+      <tr><th>もの</th><th>どこから</th></tr>
+      <tr><td>社内 Wi-Fi の名前（SSID）とパスワード</td><td>岡島さん</td></tr>
+      <tr><td>端末番号（例: <code>MSA-PC-043</code>）</td><td>Excel の PC 台帳で、次の番号を 2 つ採番</td></tr>
+      <tr><td>利用者の名前</td><td>その PC を使う人</td></tr>
+      <tr><td>ローカルアカウント名とパスワード</td><td>岡島さんの規約どおり</td></tr>
+      <tr><td>このページを見る端末（スマホ推奨）</td><td>手元</td></tr>
+    </table>
+    </div>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step0" data-step="0"><label for="done-step0">準備できた</label></div>
+  </section>
+
+  <!-- 1 -->
+  <section class="step" id="step1">
+    <h2><span class="num">1</span>電源を入れて初期設定<span class="time">15〜20 分</span></h2>
+    <p>箱から出して電源を入れると Windows の初期設定が始まります。ほとんどは「次へ」を押すだけです。<b>大事なのは 6〜8 番</b>。ここで Microsoft アカウントを作らずに会社用のローカルアカウントを作ります。</p>
+    <ol class="flow">
+      <li><b>国または地域</b>: 日本 → はい</li>
+      <li><b>キーボード レイアウト</b>: Microsoft IME → はい。「2 つ目のレイアウトを追加しますか？」は <b>スキップ</b></li>
+      <li><b>ネットワークに接続</b>: 社内 Wi-Fi を選んでパスワード → 次へ（更新の確認で数分待つことがあります）</li>
+      <li><b>ライセンス契約</b> → 同意</li>
+      <li><b>デバイスに名前を付けましょう</b>: 端末番号（例 <code>MSA-PC-043</code>）→ 次へ（一度再起動します）</li>
+      <li><b>このデバイスをどのように設定しますか？</b> → <b>「職場または学校用に設定する」</b> → 次へ ↓画面 A</li>
+      <li>サインイン画面の入力欄の下にある小さい文字 <b>「代わりにドメインに参加する」</b> をクリック ↓画面 B</li>
+      <li><b>このデバイスを使うのはだれですか？</b> → ローカルアカウント名 → パスワード → 秘密の質問 3 つ ↓画面 C</li>
+      <li><b>プライバシー設定</b>: すべて「いいえ」→ 同意</li>
+      <li>壁紙（デスクトップ）が出たら完了</li>
+    </ol>
+
+    <div class="shot">
+      <div class="win">
+        <div class="win-title">Windows セットアップ<span class="ctl">—☐✕</span></div>
+        <div class="win-body">
+          <h4>このデバイスをどのように設定しますか？</h4>
+          <p class="sub">用途に合わせて設定内容が変わります。</p>
+          <div class="opt"><span class="radio"></span><div><b>個人用に設定</b><span>自分用の PC として設定します</span></div></div>
+          <div class="opt sel hl"><span class="call">A</span><span class="radio"></span><div><b>職場または学校用に設定する</b><span>組織のリソースにアクセスできます</span></div></div>
+          <div class="btnrow"><span class="btn-win">次へ</span></div>
+        </div>
+      </div>
+      <div class="cap">画面 A: 下の「職場または学校用に設定する」を選んで「次へ」</div>
+    </div>
+
+    <div class="shot">
+      <div class="win">
+        <div class="win-title">Windows セットアップ<span class="ctl">—☐✕</span></div>
+        <div class="win-body">
+          <h4>職場または学校向けに設定しましょう</h4>
+          <p class="sub">組織のアカウントでサインインします。</p>
+          <div class="field">someone@example.com</div>
+          <div class="links">
+            <span class="lnk">サインイン オプション</span>
+            <span class="lnk hl"><span class="call">B</span>代わりにドメインに参加する</span>
+          </div>
+          <div class="btnrow"><span class="btn-win sec">戻る</span><span class="btn-win">次へ</span></div>
+        </div>
+      </div>
+      <div class="cap">画面 B: メールアドレスは入力しない。下の小さい文字「代わりにドメインに参加する」をクリック</div>
+    </div>
+
+    <div class="shot">
+      <div class="win">
+        <div class="win-title">Windows セットアップ<span class="ctl">—☐✕</span></div>
+        <div class="win-body">
+          <h4>このデバイスを使うのはだれですか？</h4>
+          <p class="sub">この名前でサインインします。</p>
+          <div class="field active hl"><span class="call">C</span>msa-user</div>
+          <div class="btnrow"><span class="btn-win">次へ</span></div>
+        </div>
+      </div>
+      <div class="cap">画面 C: 岡島さんの規約どおりのアカウント名を入力。次の画面でパスワードと秘密の質問</div>
+    </div>
+
+    <details>
+      <summary>「代わりにドメインに参加する」が画面 B に無いとき</summary>
+      <div>
+        <p>新しい Windows では消えていることがあります。上から順に試してください。</p>
+        <p><b>方法 A（まずこれ）</b>: 画面 A のところでキーボードの <kbd>Shift</kbd> + <kbd>F10</kbd> を同時に押すと黒い画面が出ます。そこに <code>start ms-cxh:localonly</code> と打って <kbd>Enter</kbd>。画面 C と同じ「だれが使いますか」が出るので、同じように入力します。</p>
+        <div class="shot">
+          <div class="term"><span class="w">C:\Windows\System32&gt;</span> start ms-cxh:localonly<span class="cur"> </span></div>
+          <div class="cap">Shift + F10 で出る黒い画面。半角で入力して Enter</div>
+        </div>
+        <p><b>方法 B</b>: 方法 A で何も起きなければ、電源ボタン長押しで切り、<b>Wi-Fi につながずに</b>手順 3 まで進め、「インターネットに接続していません」→「制限された設定で続行」を選ぶとローカルアカウントを作れます。</p>
+        <p><b>方法 C</b>: どうしても無理なら hide さんに連絡。hide さんの Microsoft アカウントで進め、あとで「設定 → アカウント → ユーザーの情報 → ローカル アカウントでのサインインに切り替える」で戻します。</p>
+      </div>
+    </details>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step1" data-step="1"><label for="done-step1">デスクトップが表示された</label></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="step" id="step2">
+    <h2><span class="num">2</span>ターミナル（管理者）を開く<span class="time">1 分</span></h2>
+    <ol class="flow">
+      <li>キーボードの <kbd>Win</kbd>（田のマーク）を押しながら <kbd>X</kbd> を押す</li>
+      <li>出てきたメニューの <b>「ターミナル (管理者)」</b> をクリック ↓画面 D</li>
+      <li>「このアプリがデバイスに変更を加えることを許可しますか？」→ <b>はい</b> ↓画面 E</li>
+    </ol>
+    <div class="shot">
+      <ul class="menu" aria-label="Win + X メニュー">
+        <li>インストールされているアプリ</li>
+        <li>電源オプション</li>
+        <li>イベント ビューアー</li>
+        <li>システム</li>
+        <li>デバイス マネージャー</li>
+        <li>ネットワーク接続</li>
+        <li>ディスクの管理</li>
+        <li>コンピューターの管理</li>
+        <li class="sep"></li>
+        <li>ターミナル</li>
+        <li class="hl"><span class="call">D</span>ターミナル (管理者)</li>
+        <li class="sep"></li>
+        <li>タスク マネージャー</li>
+        <li>設定</li>
+        <li>エクスプローラー</li>
+        <li>検索</li>
+        <li>ファイル名を指定して実行</li>
+        <li class="sep"></li>
+        <li>シャットダウンまたはサインアウト</li>
+        <li>デスクトップ</li>
+      </ul>
+      <div class="cap">画面 D: Win + X で画面左下に出るメニュー。「(管理者)」付きの方を選ぶ</div>
+    </div>
+    <div class="shot">
+      <div class="win uac">
+        <div class="win-title"><span class="shield"></span>ユーザー アカウント制御<span class="ctl">✕</span></div>
+        <div class="win-body">
+          <h4 style="font-size:15px">このアプリがデバイスに変更を加えることを許可しますか？</h4>
+          <p class="sub" style="margin-top:8px"><b style="color:#1b1b1b">Windows Terminal</b><br>確認済みの発行元: Microsoft Corporation</p>
+          <div class="btnrow"><span class="btn-win hl"><span class="call">E</span>はい</span><span class="btn-win sec">いいえ</span></div>
+        </div>
+      </div>
+      <div class="cap">画面 E: 「はい」を押す。黒い画面が開き、先頭に PS C:\Users\...&gt; と出ていれば OK</div>
+    </div>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step2" data-step="2"><label for="done-step2">黒い画面（ターミナル）が開いた</label></div>
+  </section>
+
+  <!-- 3 -->
+  <section class="step" id="step3">
+    <h2><span class="num">3</span>コマンドを貼り付けて Enter<span class="time">1 分 + 待ち 5〜30 分</span></h2>
+    <p>下の 1 行をコピーして、黒い画面の中で <b>右クリック</b>（それだけで貼り付けになります）→ <kbd>Enter</kbd>。</p>
+    <div class="cmdbox">
+      <pre id="cmd">Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex</pre>
+      <button class="copy" type="button" data-copy="cmd" id="copy-cmd">コピー</button>
+    </div>
+    <p class="small muted">スマホで見ている場合: 上のコピーボタンは PC 側では使えないので、PC の Edge でこのページを開いてコピーするか、文字を見ながら打ち込んでください（長いので Edge で開くのがおすすめ）。</p>
+    <div class="shot">
+      <div class="term"><span class="w">PS C:\Users\msa-user&gt;</span> Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex
+
+<span class="c">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MSA キッティング ブートストラップ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span class="g">[INFO] 最新のセットアップ一式をダウンロードしています...</span>
+<span class="g">[INFO] セットアップを開始します</span>
+
+<span class="m">╔══════════════════════════════════════════╗
+║   MSA キッティング Phase 1 セットアップ   ║
+╚══════════════════════════════════════════╝</span>
+<span class="d">ログ保存先: C:\msa-kitting-logs\setup-20261027-101530.log</span>
+
+<span class="c">▶ Windows 既定設定</span>
+<span class="d">────────────────────────────────────────────</span>
+電源プランをバランスに設定...
+  <span class="g">現在の電源プラン: Balanced</span>
+...
+<span class="c">▶ アプリ一括インストール (winget)</span>
+<span class="d">────────────────────────────────────────────</span>
+対象アプリ数: 6
+<span class="w">→ Google Chrome (Google.Chrome)</span>
+  <span class="g">[OK] Google Chrome インストール完了</span></div>
+      <div class="cap">画面 F: 貼り付けて Enter を押すとこのように流れ始める。アプリのインストールは 5〜30 分（Acrobat Reader が大きい）</div>
+    </div>
+    <div class="note">画面が止まっているように見えても、ダウンロード中のことがあります。30 分動かなければ <a href="#fail">失敗したとき</a> へ。</div>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step3" data-step="3"><label for="done-step3">水色の帯「MSA キッティング ブートストラップ」が出て流れ始めた</label></div>
+  </section>
+
+  <!-- 4 -->
+  <section class="step" id="step4">
+    <h2><span class="num">4</span>聞かれたら入力<span class="time">2 分</span></h2>
+    <p>アプリのインストールが終わると、4 つ聞かれます。入力して <kbd>Enter</kbd>。分からない項目は何も打たずに <kbd>Enter</kbd> で飛ばせます。</p>
+    <div class="tablewrap">
+    <table>
+      <tr><th>聞かれること</th><th>入力例</th><th>メモ</th></tr>
+      <tr><td>端末番号</td><td><code>MSA-PC-043</code></td><td>台帳で採番した番号（必須）</td></tr>
+      <tr><td>利用者名</td><td><code>三浦 英直</code></td><td>この PC を使う人（必須）</td></tr>
+      <tr><td>部署</td><td><code>営業部</code></td><td>分からなければ Enter</td></tr>
+      <tr><td>設置場所</td><td><code>本社2F</code></td><td>分からなければ Enter</td></tr>
+    </table>
+    </div>
+    <div class="shot">
+      <div class="term"><span class="c">▶ 端末資産登録</span>
+<span class="d">────────────────────────────────────────────</span>
+
+<span class="c">─── 端末資産登録 ───</span>
+<span class="d">端末番号と利用者名を入力してください（分からない項目は Enter で飛ばせます）</span>
+
+端末番号 (例: MSA-PC-042): <span class="w">MSA-PC-043</span><span class="cur"> </span>
+利用者名 (例: 三浦 英直):
+部署 (空欄可):
+設置場所 (空欄可、例: 本社2F): </div>
+      <div class="cap">画面 G: 1 行ずつ聞かれる。入力して Enter で次の質問へ</div>
+    </div>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step4" data-step="4"><label for="done-step4">4 つ入力した</label></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="step" id="step5">
+    <h2><span class="num">5</span>完了画面を確認<span class="time">1 分</span></h2>
+    <p>最後に <b>緑の枠で「キッティング Phase 1 完了」</b> と出れば成功です。そのすぐ下に「残りの手作業」が 3 つ表示されます（次のステップ）。</p>
+    <div class="shot">
+      <div class="term"><span class="g">[OK] 端末情報を保存しました</span>
+<span class="d">  CSV: C:\msa-kitting-logs\assets-20261027.csv</span>
+
+<span class="g">════════════════════════════════════════════
+  ✅ キッティング Phase 1 完了
+════════════════════════════════════════════</span>
+
+<span class="y">残りの手作業（このあと行ってください）:
+  1. スタートメニューから「Dell Command | Update」を開き、「確認」→ 更新をすべて適用（ドライバ更新）
+  2. 上の画面に「McAfee が残っています」と出ていたら、設定 → アプリ → インストールされているアプリ から McAfee を削除
+  3. 設定 → Windows Update → 更新プログラムのチェック → すべて適用して再起動</span>
+
+<span class="d">ログ全文: C:\msa-kitting-logs\setup-20261027-101530.log</span>
+<span class="g">RESULT: SUCCESS</span></div>
+      <div class="cap">画面 H: 緑の枠と「RESULT: SUCCESS」が出れば OK。赤い枠が出たら「失敗したとき」へ</div>
+    </div>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step5" data-step="5"><label for="done-step5">緑の「完了」が出た</label></div>
+  </section>
+
+  <!-- 6 -->
+  <section class="step" id="step6">
+    <h2><span class="num">6</span>仕上げの手作業<span class="time">3 つ・各 5 分</span></h2>
+    <div class="cards">
+      <div class="card">
+        <h3>① Dell Command | Update</h3>
+        <p>スタートメニューで「Dell Command」と検索して開く → <b>確認</b> → 見つかった更新を<b>すべてインストール</b>。再起動を求められたら再起動。</p>
+      </div>
+      <div class="card">
+        <h3>② McAfee の削除</h3>
+        <p>画面 H に「McAfee が残っています」と出ていた場合だけ。設定 → アプリ → インストールされているアプリ → McAfee の右の <b>…</b> → アンインストール ↓画面 I</p>
+      </div>
+      <div class="card">
+        <h3>③ Windows Update</h3>
+        <p>設定 → Windows Update → <b>更新プログラムのチェック</b> → すべて入れて再起動。「最新の状態です」になるまで 2〜3 回繰り返す。</p>
+      </div>
+    </div>
+    <div class="shot">
+      <div class="win">
+        <div class="win-title">設定<span class="ctl">—☐✕</span></div>
+        <div class="win-body">
+          <h4 style="font-size:16px">アプリ &gt; インストールされているアプリ</h4>
+          <div class="field">McAfee　🔍</div>
+          <div class="wintask">
+            <span class="ico">M</span>
+            <div><b>McAfee</b><br><span style="color:#555;font-size:12.5px">McAfee, LLC | 1.2 GB</span></div>
+            <span class="dots hl"><span class="call">I</span>…</span>
+          </div>
+          <ul class="popmenu">
+            <li>変更</li>
+            <li class="hl">アンインストール</li>
+          </ul>
+        </div>
+      </div>
+      <div class="cap">画面 I: 検索欄に McAfee と入れ、右端の「…」→「アンインストール」。McAfee 側の画面でも「削除」を選ぶ</div>
+    </div>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step6" data-step="6"><label for="done-step6">3 つ終わった</label></div>
+  </section>
+
+  <!-- 7 -->
+  <section class="step" id="step7">
+    <h2><span class="num">7</span>台帳に記録して連絡<span class="time">5 分</span></h2>
+    <p>端末情報（シリアル番号・型番・OS など）が <code>C:\msa-kitting-logs\assets-日付.csv</code> に保存されています。メモ帳で開いて、内容を PC 台帳（Excel / スプレッドシート）にコピーしてください。</p>
+    <p>そのあと hide さん or 岡島さんに <b>「キッティング完了しました」</b> と連絡。メール・VPN・共有フォルダ・プリンタは別途設定します。</p>
+    <div class="note ok">2 台目も同じ手順です。ページ上部で「2 台目」に切り替えるとチェックが別に記憶されます。</div>
+    <div class="done-row"><input type="checkbox" class="done" id="done-step7" data-step="7"><label for="done-step7">台帳に記録して連絡した</label></div>
+  </section>
+
+  <!-- fail -->
+  <section class="step" id="fail">
+    <h2><span class="num" style="background:var(--bad)">!</span>失敗したとき</h2>
+    <p>赤い枠で <b>「キッティング途中で失敗」</b> と出たら、<b>ウィンドウを閉じずに</b>次の手順を。壊れることはありません。同じコマンドをもう一度貼って実行しても大丈夫です（終わった作業は自動で飛ばします）。</p>
+    <div class="shot">
+      <div class="term"><span class="r">[ERROR] アプリ一括インストール (winget) 失敗: 必須アプリのインストールに失敗: Google Chrome</span>
+
+<span class="r">════════════════════════════════════════════
+  ❌ キッティング途中で失敗
+════════════════════════════════════════════</span>
+
+<span class="y">【次のアクション】
+  1. ログファイルをメモ帳で開く: C:\msa-kitting-logs\setup-20261027-101530.log
+  2. Ctrl + A → Ctrl + C で全文コピー
+  3. Claude のチャット画面に貼る + 「MSA キッティングで失敗しました」と添える
+  4. Claude の指示に従って次のコマンドを貼る</span>
+<span class="r">RESULT: FAILED</span></div>
+      <div class="cap">画面 J: 赤い枠が出ても慌てない。書いてあるとおりログを Claude に貼る</div>
+    </div>
+    <ol class="flow">
+      <li>エクスプローラで <code>C:\msa-kitting-logs</code> を開く</li>
+      <li>一番新しい <code>setup-日付.log</code> を<b>メモ帳</b>で開く</li>
+      <li><kbd>Ctrl</kbd>+<kbd>A</kbd> → <kbd>Ctrl</kbd>+<kbd>C</kbd> で全文コピー</li>
+      <li><a href="https://claude.ai/" target="_blank" rel="noopener">Claude のチャット</a>に下の文を貼り、その後ろにログを <kbd>Ctrl</kbd>+<kbd>V</kbd></li>
+      <li>Claude が返したコマンドをターミナルに貼って <kbd>Enter</kbd></li>
+    </ol>
+    <div class="cmdbox">
+      <pre id="tmpl">MSA キッティングで失敗しました。ログ全文を貼ります：
+
+（ここに Ctrl + V）</pre>
+      <button class="copy" type="button" data-copy="tmpl" id="copy-tmpl">コピー</button>
+    </div>
+    <h3>よくあるメッセージ</h3>
+    <div class="tablewrap">
+    <table>
+      <tr><th>画面に出る文</th><th>意味と対処</th></tr>
+      <tr><td>管理者権限が必要です</td><td>「(管理者)」でないターミナルで実行した。<a href="#step2">ステップ 2</a> からやり直し</td></tr>
+      <tr><td>ダウンロードに失敗しました</td><td>Wi-Fi が切れている。Edge で https://github.com が開けるか確認</td></tr>
+      <tr><td>winget が使えません</td><td>Microsoft Store を開いて「アプリ インストーラー」を更新 → 同じコマンドを再実行</td></tr>
+      <tr><td>日本語が「????」や記号になる</td><td>動作には影響なし。hide さんに「文字化けしている」と伝える</td></tr>
+      <tr><td>途中で勝手に再起動した</td><td>正常。再起動後に<a href="#step2">ステップ 2</a>から同じコマンドを貼る</td></tr>
+    </table>
+    </div>
+  </section>
+
+  <footer>
+    文字だけの版: リポジトリの <code>docs/employee-guide.md</code>。スクリプト本体: <a href="https://github.com/hide-byte/msa-kitting" target="_blank" rel="noopener">github.com/hide-byte/msa-kitting</a>。
+    このページの画面は実機の見た目を簡略化した模型です。実際の文言が少し違うことがあります。
+  </footer>
+</div>
+
+<script>
+(function () {
+  var KEY = 'msa-kitting-guide:v1';
+  var pc = 1;
+  try { pc = parseInt(localStorage.getItem(KEY + ':pc') || '1', 10) || 1; } catch (e) {}
+
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('input.done'));
+  var progEl = document.getElementById('prog');
+
+  function keyFor(cb) { return KEY + ':pc' + pc + ':step' + cb.getAttribute('data-step'); }
+
+  function render() {
+    var n = 0;
+    boxes.forEach(function (cb) {
+      var v = false;
+      try { v = localStorage.getItem(keyFor(cb)) === '1'; } catch (e) {}
+      cb.checked = v;
+      var sec = cb.closest('section');
+      if (sec) sec.classList.toggle('is-done', v);
+      if (v) n++;
+    });
+    progEl.textContent = n + ' / ' + boxes.length;
+    Array.prototype.forEach.call(document.querySelectorAll('.pcbtn'), function (b) {
+      b.setAttribute('aria-pressed', String(parseInt(b.getAttribute('data-pc'), 10) === pc));
+    });
+  }
+
+  boxes.forEach(function (cb) {
+    cb.addEventListener('change', function () {
+      try { localStorage.setItem(keyFor(cb), cb.checked ? '1' : '0'); } catch (e) {}
+      render();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.pcbtn'), function (b) {
+    b.addEventListener('click', function () {
+      pc = parseInt(b.getAttribute('data-pc'), 10) || 1;
+      try { localStorage.setItem(KEY + ':pc', String(pc)); } catch (e) {}
+      render();
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('button.copy'), function (btn) {
+    btn.addEventListener('click', function () {
+      var src = document.getElementById(btn.getAttribute('data-copy'));
+      var text = src ? src.textContent : '';
+      function ok() { btn.textContent = 'コピーしました'; btn.classList.add('done'); setTimeout(function () { btn.textContent = 'コピー'; btn.classList.remove('done'); }, 1800); }
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.className = 'fallback'; ta.value = text; document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); ok(); } catch (e) { btn.textContent = '長押しで選択してコピーしてください'; }
+        document.body.removeChild(ta);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(ok, fallback);
+      } else { fallback(); }
+    });
+  });
+
+  render();
+})();
+</script>

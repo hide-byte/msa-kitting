@@ -1,27 +1,32 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   MSA キッティング メイン処理。bootstrap.ps1 から呼ばれる。
 
 .DESCRIPTION
   ログを開始して各 module を順次実行。失敗時は try/catch でログ保全。
+  失敗は throw で呼び出し元（bootstrap.ps1）に伝える。exit は使わない。
+  ログの末尾に必ず "RESULT: SUCCESS" または "RESULT: FAILED" を出す（CI と Claude の判定用）。
 
 .PARAMETER RepoRoot
   bootstrap.ps1 が展開したリポジトリのルートパス
 
+.PARAMETER SkipModules
+  スキップしたいモジュール名（テスト用。例: 'Register-Asset'）
+
 .NOTES
-  Phase 1 / Contract: TC-2026-05-27-002
+  Phase 1。Task Contract は hide さんの CC 環境（~/.claude/contracts）で管理。
 #>
 
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)]
     [string]$RepoRoot,
-    # スキップしたいモジュール名（テスト用。例: 'Register-Asset'）
     [string[]]$SkipModules = @()
 )
 
 $ErrorActionPreference = 'Stop'
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 # ──────────────────────────────────────────────
 # ログ準備
@@ -62,13 +67,15 @@ function Invoke-Module {
         Write-Host "[OK] $Name 完了" -ForegroundColor Green
     } catch {
         Write-Host "[ERROR] $Name 失敗: $_" -ForegroundColor Red
-        Write-Host '失敗ログ全文:' -ForegroundColor Yellow
+        Write-Host '失敗箇所:' -ForegroundColor Yellow
         Write-Host $_.ScriptStackTrace -ForegroundColor Yellow
         throw
     }
 }
 
 $script:SkipList = $SkipModules
+$script:Failed = $false
+$script:FailureMessage = ''
 
 # ──────────────────────────────────────────────
 # メイン
@@ -81,11 +88,12 @@ try {
     Write-Host ''
     Write-Host "ログ保存先: $logPath" -ForegroundColor Gray
     Write-Host "リポジトリ: $RepoRoot" -ForegroundColor Gray
+    Write-Host "PowerShell: $($PSVersionTable.PSVersion)" -ForegroundColor Gray
 
     $modulesDir = Join-Path $RepoRoot 'modules'
     $configDir = Join-Path $RepoRoot 'config'
 
-    # Step 1: Windows 既定設定
+    # Step 1: Windows 既定設定（＋Dell 不要ソフト削除）
     Invoke-Module -Name 'Windows 既定設定' `
         -SkipKey 'Set-WindowsDefaults' `
         -Path (Join-Path $modulesDir 'Set-WindowsDefaults.ps1') `
@@ -109,29 +117,43 @@ try {
     Write-Host '  ✅ キッティング Phase 1 完了' -ForegroundColor Green
     Write-Host '════════════════════════════════════════════' -ForegroundColor Green
     Write-Host ''
-    Write-Host "次の作業（hide さん or 岡島さんに連絡してください）:" -ForegroundColor Yellow
-    Write-Host '  1. Outlook（メール）の設定' -ForegroundColor Yellow
-    Write-Host '  2. FortiClient VPN の設定' -ForegroundColor Yellow
-    Write-Host '  3. 共有フォルダの接続' -ForegroundColor Yellow
-    Write-Host '  4. 複合機（プリンタ）の登録' -ForegroundColor Yellow
+    Write-Host '残りの手作業（このあと行ってください）:' -ForegroundColor Yellow
+    Write-Host '  1. スタートメニューから「Dell Command | Update」を開き、「確認」→ 更新をすべて適用（ドライバ更新）' -ForegroundColor Yellow
+    Write-Host '  2. 上の画面に「McAfee が残っています」と出ていたら、設定 → アプリ → インストールされているアプリ から McAfee を削除' -ForegroundColor Yellow
+    Write-Host '  3. 設定 → Windows Update → 更新プログラムのチェック → すべて適用して再起動' -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host 'その後、hide さん or 岡島さんに依頼する項目:' -ForegroundColor Yellow
+    Write-Host '  - Outlook（メール）の設定' -ForegroundColor Yellow
+    Write-Host '  - FortiClient VPN の設定' -ForegroundColor Yellow
+    Write-Host '  - 共有フォルダの接続' -ForegroundColor Yellow
+    Write-Host '  - 複合機（プリンタ）の登録' -ForegroundColor Yellow
     Write-Host ''
     Write-Host "ログ全文: $logPath" -ForegroundColor Gray
+    Write-Host 'RESULT: SUCCESS' -ForegroundColor Green
     Write-Host ''
 }
 catch {
+    $script:Failed = $true
+    $script:FailureMessage = "$_"
     Write-Host ''
     Write-Host '════════════════════════════════════════════' -ForegroundColor Red
     Write-Host '  ❌ キッティング途中で失敗' -ForegroundColor Red
     Write-Host '════════════════════════════════════════════' -ForegroundColor Red
     Write-Host ''
-    Write-Host '【次のアクション】' -ForegroundColor Yellow
-    Write-Host "  1. ログファイルを開く: $logPath" -ForegroundColor Yellow
-    Write-Host '  2. ログ全文をコピー' -ForegroundColor Yellow
-    Write-Host '  3. Claude のチャット画面に貼る + 「MSA キッティングで失敗しました」と添える' -ForegroundColor Yellow
-    Write-Host '  4. CC の指示に従って次のコマンドを貼る' -ForegroundColor Yellow
+    Write-Host "エラー内容: $_" -ForegroundColor Red
     Write-Host ''
-    exit 1
+    Write-Host '【次のアクション】' -ForegroundColor Yellow
+    Write-Host "  1. ログファイルをメモ帳で開く: $logPath" -ForegroundColor Yellow
+    Write-Host '  2. Ctrl + A → Ctrl + C で全文コピー' -ForegroundColor Yellow
+    Write-Host '  3. Claude のチャット画面に貼る + 「MSA キッティングで失敗しました」と添える' -ForegroundColor Yellow
+    Write-Host '  4. Claude の指示に従って次のコマンドを貼る（同じコマンドの再実行で続きから進みます）' -ForegroundColor Yellow
+    Write-Host 'RESULT: FAILED' -ForegroundColor Red
+    Write-Host ''
 }
 finally {
     Stop-Transcript | Out-Null
+}
+
+if ($script:Failed) {
+    throw "キッティング失敗: $($script:FailureMessage)"
 }

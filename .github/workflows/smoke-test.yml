@@ -1,5 +1,9 @@
 name: smoke-test
 
+# 社員が実際に使うのは Windows 11 標準の「Windows PowerShell 5.1」。
+# そのため本番相当の実行は shell: powershell（5.1）で行い、
+# BOM 有無・日本語文字列・外部コマンドの stderr 挙動を 5.1 で検証する。
+
 on:
   workflow_dispatch:
   push:
@@ -13,18 +17,20 @@ on:
 
 jobs:
   smoke:
-    name: Windows runner smoke test
+    name: Windows runner smoke test (PowerShell 5.1)
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check runner environment
         id: env
         shell: pwsh
         run: |
-          $PSVersionTable | Format-List
+          Write-Host "pwsh: $($PSVersionTable.PSVersion)"
+          $ps51 = (& powershell -NoProfile -Command '$PSVersionTable.PSVersion.ToString()')
+          Write-Host "Windows PowerShell: $ps51"
           $hasWinget = $null -ne (Get-Command winget -ErrorAction SilentlyContinue)
           Write-Host "winget available: $hasWinget"
           if ($hasWinget) {
@@ -34,27 +40,37 @@ jobs:
             Write-Output "winget_available=false" >> $env:GITHUB_OUTPUT
           }
 
+      - name: UTF-8 BOM check (全 .ps1 必須)
+        shell: pwsh
+        run: |
+          $bad = @()
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $b = [System.IO.File]::ReadAllBytes($_.FullName)
+            if ($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF) {
+              $bad += $_.FullName
+            } else {
+              Write-Host "✅ BOM OK: $($_.FullName)"
+            }
+          }
+          if ($bad.Count -gt 0) {
+            $bad | ForEach-Object { Write-Host "❌ BOM なし（Windows PowerShell 5.1 で日本語が文字化けする）: $_" -ForegroundColor Red }
+            exit 1
+          }
+
       - name: Syntax parse check (全 .ps1)
         shell: pwsh
         run: |
-          $files = @(
-            './bootstrap.ps1',
-            './setup.ps1',
-            './modules/Install-Apps.ps1',
-            './modules/Set-WindowsDefaults.ps1',
-            './modules/Register-Asset.ps1'
-          )
           $totalErrors = 0
-          foreach ($f in $files) {
-            $script = Get-Content $f -Raw
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $script = Get-Content $_.FullName -Raw
             $errors = $null
             [System.Management.Automation.Language.Parser]::ParseInput($script, [ref]$null, [ref]$errors) | Out-Null
             if ($errors.Count -gt 0) {
-              Write-Host "❌ $f" -ForegroundColor Red
+              Write-Host "❌ $($_.FullName)" -ForegroundColor Red
               $errors | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
               $totalErrors += $errors.Count
             } else {
-              Write-Host "✅ $f parse OK" -ForegroundColor Green
+              Write-Host "✅ $($_.Name) parse OK" -ForegroundColor Green
             }
           }
           if ($totalErrors -gt 0) { exit 1 }
@@ -62,53 +78,69 @@ jobs:
       - name: JSON validation (config)
         shell: pwsh
         run: |
-          $files = Get-ChildItem -Path ./config -Filter *.json -ErrorAction SilentlyContinue
-          foreach ($f in $files) {
+          Get-ChildItem -Path ./config -Filter *.json -ErrorAction SilentlyContinue | ForEach-Object {
             try {
-              Get-Content $f.FullName -Raw | ConvertFrom-Json | Out-Null
-              Write-Host "✅ $($f.Name) valid JSON" -ForegroundColor Green
+              Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null
+              Write-Host "✅ $($_.Name) valid JSON" -ForegroundColor Green
             } catch {
-              Write-Host "❌ $($f.Name) JSON parse error: $_" -ForegroundColor Red
+              Write-Host "❌ $($_.Name) JSON parse error: $_" -ForegroundColor Red
               exit 1
             }
           }
 
-      - name: Run setup.ps1 with all winget-dependent modules skipped (when winget absent)
-        if: steps.env.outputs.winget_available != 'true'
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          ./setup.ps1 -RepoRoot $PWD -SkipModules @('Install-Apps', 'Register-Asset')
-
-      - name: Run setup.ps1 with Install-Apps enabled (when winget present)
+      # ── 本番相当: bootstrap.ps1 → (GitHub main zip 取得) → setup.ps1 を Windows PowerShell 5.1 で ──
+      - name: Run bootstrap.ps1 end-to-end under Windows PowerShell 5.1
         if: steps.env.outputs.winget_available == 'true'
+        shell: powershell
+        run: |
+          .\bootstrap.ps1 -SkipModules @('Register-Asset')
+          if ($global:MSA_KITTING_FAILED) {
+            Write-Host "bootstrap reported failure" -ForegroundColor Red
+            exit 1
+          }
+
+      - name: Run setup.ps1 with winget modules skipped (when winget absent)
+        if: steps.env.outputs.winget_available != 'true'
+        shell: powershell
+        run: |
+          .\setup.ps1 -RepoRoot $PWD -SkipModules @('Install-Apps', 'Register-Asset')
+
+      - name: Verify transcript log has RESULT: SUCCESS
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          ./setup.ps1 -RepoRoot $PWD -SkipModules @('Register-Asset')
+          $log = Get-ChildItem C:\msa-kitting-logs\setup-*.log -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -Last 1
+          if (-not $log) { Write-Host "❌ transcript log not found" -ForegroundColor Red; exit 1 }
+          $content = Get-Content $log.FullName -Raw
+          if ($content -match 'RESULT: SUCCESS') {
+            Write-Host "✅ $($log.Name) contains RESULT: SUCCESS" -ForegroundColor Green
+          } else {
+            Write-Host "❌ RESULT: SUCCESS not found in $($log.Name)" -ForegroundColor Red
+            Write-Host $content
+            exit 1
+          }
+          # 日本語が文字化けせずにログへ出ているか（BOM/エンコーディング回帰検知）
+          if ($content -match 'キッティング') {
+            Write-Host "✅ 日本語がログ内で正しく保持されている" -ForegroundColor Green
+          } else {
+            Write-Host "⚠ 日本語がログ内で見つからない（文字化けの可能性）。先頭 60 行:" -ForegroundColor Yellow
+            ($content -split "`n" | Select-Object -First 60) -join "`n" | Write-Host
+          }
 
-      - name: Verify installed apps (only when winget available)
+      - name: Verify installed apps (winget list)
         if: steps.env.outputs.winget_available == 'true' && (success() || failure())
         continue-on-error: true
         shell: pwsh
         run: |
-          # winget list は未インストール時に exit 非ゼロを返すので、ステップ全体は continue-on-error で握りつぶす
           $ErrorActionPreference = 'Continue'
-          Write-Host "=== winget list (Chrome / Acrobat / PowerToys / PowerShell / VLC) ==="
-          @(
-            'Google.Chrome',
-            'Adobe.Acrobat.Reader.64-bit',
-            'Microsoft.PowerToys',
-            'Microsoft.PowerShell',
-            'VideoLAN.VLC'
-          ) | ForEach-Object {
-            Write-Host "--- $_ ---"
-            try { winget list --id $_ --exact --accept-source-agreements 2>&1 | Out-Host } catch { Write-Host "(not installed or query failed)" }
+          $apps = (Get-Content ./config/apps.json -Raw | ConvertFrom-Json).apps
+          foreach ($a in $apps) {
+            Write-Host "--- $($a.id) (required=$($a.required)) ---"
+            try { winget list --id $a.id --exact --accept-source-agreements 2>&1 | Out-Host } catch { Write-Host "(not installed or query failed)" }
           }
 
       - name: Upload setup logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: setup-logs
           path: C:\msa-kitting-logs\

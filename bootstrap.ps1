@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   MSA キッティング ブートストラップ。社員はこの 1 ファイルを起動するだけ。
@@ -6,29 +6,40 @@
 .DESCRIPTION
   1. 管理者権限チェック
   2. 作業ディレクトリ作成 (C:\msa-kitting)
-  3. リポジトリの最新版をダウンロード（GitHub Release zip 経由）
+  3. リポジトリの最新版をダウンロード（GitHub main ブランチの zip）
   4. setup.ps1 を起動
 
+  ※ このファイルは `irm ... | iex` で実行される。iex の中で exit を呼ぶと
+    PowerShell ウィンドウごと閉じてエラーが読めなくなるため、exit は一切使わない。
+    成否は $global:MSA_KITTING_FAILED（$true / $false）で呼び出し元に伝える。
+
 .EXAMPLE
-  # 管理者として起動した PowerShell に貼る:
-  Set-ExecutionPolicy Bypass -Scope Process -Force
-  irm https://example.com/bootstrap.ps1 | iex
+  # Win + X → 「ターミナル（管理者）」に貼る:
+  Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex
 
 .NOTES
-  Phase 1 / Contract: TC-2026-05-27-002
+  Phase 1。Task Contract は hide さんの CC 環境（~/.claude/contracts）で管理。
 #>
 
 [CmdletBinding()]
 param(
     # GitHub リポジトリの owner/repo
     [string]$RepoSlug = 'hide-byte/msa-kitting',
-    # Release tag (latest を使う場合は 'latest')
+    # 'latest' = main ブランチ。タグ名を指定するとそのタグの zip を取る
     [string]$Ref = 'latest',
     # 作業ディレクトリ
-    [string]$WorkDir = 'C:\msa-kitting'
+    [string]$WorkDir = 'C:\msa-kitting',
+    # setup.ps1 に渡すスキップ指定（CI 用。例: @('Register-Asset')）
+    [string[]]$SkipModules = @()
 )
 
 $ErrorActionPreference = 'Stop'
+$global:MSA_KITTING_FAILED = $true
+
+# 日本語・罫線の表示崩れ防止（Windows PowerShell 5.1 対策）
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
+# 古い環境で TLS 1.2 が無効な場合の保険
+try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch { }
 
 function Write-Banner {
     param([string]$Text)
@@ -39,24 +50,47 @@ function Write-Banner {
     Write-Host ''
 }
 
+function Write-Fatal {
+    param([string]$Message, [string[]]$Hints = @())
+    Write-Host ''
+    Write-Host '════════════════════════════════════════════' -ForegroundColor Red
+    Write-Host "  ❌ $Message" -ForegroundColor Red
+    Write-Host '════════════════════════════════════════════' -ForegroundColor Red
+    foreach ($h in $Hints) { Write-Host "  - $h" -ForegroundColor Yellow }
+    Write-Host ''
+    Write-Host 'このウィンドウは閉じないでください。' -ForegroundColor Yellow
+    Write-Host '上に表示された内容（赤い行とその前後）をコピーして、hide さん または Claude のチャットに貼ってください。' -ForegroundColor Yellow
+    Write-Host 'RESULT: FAILED (bootstrap)' -ForegroundColor Red
+    Write-Host ''
+}
+
+# ──────────────────────────────────────────────
 # 1. 管理者権限チェック
+# ──────────────────────────────────────────────
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-    Write-Host '[ERROR] このスクリプトは管理者権限が必要です。' -ForegroundColor Red
-    Write-Host 'PowerShell を「管理者として実行」で起動し直してから貼り直してください。' -ForegroundColor Yellow
-    exit 1
+    Write-Fatal '管理者権限が必要です' @(
+        'キーボードの Win キー + X を押す → 「ターミナル（管理者）」を選ぶ',
+        '「このアプリがデバイスに変更を加えることを許可しますか？」→ はい',
+        '開いた画面にもう一度コマンドを貼り付けてください'
+    )
+    return
 }
 
 Write-Banner 'MSA キッティング ブートストラップ'
 
+# ──────────────────────────────────────────────
 # 2. 作業ディレクトリ
+# ──────────────────────────────────────────────
 if (-not (Test-Path $WorkDir)) {
     New-Item -ItemType Directory -Path $WorkDir -Force | Out-Null
 }
 Set-Location $WorkDir
 
+# ──────────────────────────────────────────────
 # 3. リポジトリ取得
-Write-Host '[INFO] リポジトリを取得しています...' -ForegroundColor Green
+# ──────────────────────────────────────────────
+Write-Host '[INFO] 最新のセットアップ一式をダウンロードしています...' -ForegroundColor Green
 
 $zipUrl = if ($Ref -eq 'latest') {
     "https://github.com/$RepoSlug/archive/refs/heads/main.zip"
@@ -70,33 +104,48 @@ $extractDir = Join-Path $WorkDir 'src'
 try {
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
 } catch {
-    Write-Host "[ERROR] リポジトリ取得に失敗: $_" -ForegroundColor Red
-    Write-Host '原因候補:' -ForegroundColor Yellow
-    Write-Host '  - インターネット接続を確認してください（Wi-Fi 繋がっていますか？）' -ForegroundColor Yellow
-    Write-Host '  - Private リポジトリの場合、配布方式（PAT/Release zip）の設定が必要です' -ForegroundColor Yellow
-    exit 1
+    Write-Fatal "ダウンロードに失敗しました: $_" @(
+        'Wi-Fi が繋がっているか確認してください（画面右下の Wi-Fi アイコン）',
+        'Edge を開いて https://github.com が表示できるか確認してください'
+    )
+    return
 }
 
-if (Test-Path $extractDir) {
-    Remove-Item -Recurse -Force $extractDir
+try {
+    if (Test-Path $extractDir) {
+        Remove-Item -Recurse -Force $extractDir
+    }
+    Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+} catch {
+    Write-Fatal "ダウンロードしたファイルの展開に失敗しました: $_"
+    return
 }
-Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
 
 # 展開後の実体ディレクトリを特定（archive zip は <repo>-<branch>/ で展開される）
 $repoRoot = Get-ChildItem -Path $extractDir -Directory | Select-Object -First 1
 if (-not $repoRoot) {
-    Write-Host '[ERROR] 展開後のディレクトリが見つかりません' -ForegroundColor Red
-    exit 1
+    Write-Fatal '展開後のフォルダが見つかりません'
+    return
 }
 
+# ──────────────────────────────────────────────
 # 4. setup.ps1 起動
+# ──────────────────────────────────────────────
 $setupPath = Join-Path $repoRoot.FullName 'setup.ps1'
 if (-not (Test-Path $setupPath)) {
-    Write-Host "[ERROR] setup.ps1 が見つかりません: $setupPath" -ForegroundColor Red
-    exit 1
+    Write-Fatal "setup.ps1 が見つかりません: $setupPath"
+    return
 }
 
-Write-Host '[INFO] setup.ps1 を起動します' -ForegroundColor Green
-& $setupPath -RepoRoot $repoRoot.FullName
-
-exit $LASTEXITCODE
+Write-Host '[INFO] セットアップを開始します' -ForegroundColor Green
+try {
+    & $setupPath -RepoRoot $repoRoot.FullName -SkipModules $SkipModules
+    $global:MSA_KITTING_FAILED = $false
+} catch {
+    Write-Fatal "セットアップ途中で失敗しました: $_" @(
+        'C:\msa-kitting-logs フォルダを開く',
+        '一番新しい setup-日付.log をメモ帳で開く',
+        'Ctrl + A → Ctrl + C で全文コピーして Claude のチャットに貼る'
+    )
+    return
+}

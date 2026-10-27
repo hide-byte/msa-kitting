@@ -1,7 +1,16 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   winget でアプリを一括インストールする。
+
+.DESCRIPTION
+  - winget が無い／壊れている場合は App Installer の再登録を試みる
+  - 既にインストール済のものはスキップ（再実行しても安全）
+  - required=true のアプリが入らなかった場合だけ失敗扱い
+
+  Windows PowerShell 5.1 で $ErrorActionPreference='Stop' のまま外部コマンドの
+  stderr を 2>&1 で受けると NativeCommandError 例外になるため、本モジュールは
+  'Continue' で動かし、失敗判定は明示的に行う。
 
 .PARAMETER ConfigPath
   apps.json のパス。形式は { "apps": [ { "id": "Google.Chrome", "name": "Google Chrome", "required": true } ] }
@@ -13,22 +22,46 @@ param(
     [string]$ConfigPath
 )
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
-# winget 存在確認
-$winget = Get-Command winget -ErrorAction SilentlyContinue
-if (-not $winget) {
-    throw 'winget が見つかりません。Windows 11 標準 or Microsoft Store の「アプリ インストーラー」を最新化してください。'
+function Test-WingetAvailable {
+    return [bool](Get-Command winget -ErrorAction SilentlyContinue)
 }
+
+function Test-AppInstalled {
+    param([string]$Id)
+    $out = & winget list --id $Id --exact --accept-source-agreements 2>$null | Out-String
+    return ($out -match [regex]::Escape($Id))
+}
+
+# ──────────────────────────────────────────────
+# winget 存在確認（＋自動修復）
+# ──────────────────────────────────────────────
+if (-not (Test-WingetAvailable)) {
+    Write-Host '[WARN] winget が見つかりません。App Installer の再登録を試みます...' -ForegroundColor Yellow
+    try {
+        Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe -ErrorAction Stop
+        Start-Sleep -Seconds 3
+    } catch {
+        Write-Host "  再登録に失敗: $_" -ForegroundColor Yellow
+    }
+}
+if (-not (Test-WingetAvailable)) {
+    throw 'winget が使えません。Microsoft Store を開いて「アプリ インストーラー」を更新してから、同じコマンドをもう一度実行してください。'
+}
+
+# ソース情報を最新化（新品 PC の初回は古いことがある）
+Write-Host 'winget のパッケージ情報を更新中...' -ForegroundColor Gray
+& winget source update --disable-interactivity 2>$null | Out-Null
 
 if (-not (Test-Path $ConfigPath)) {
     throw "設定ファイルが見つかりません: $ConfigPath"
 }
 
-$config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
-$apps = $config.apps
+$config = Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+$apps = @($config.apps)
 
-if (-not $apps) {
+if ($apps.Count -eq 0) {
     Write-Host '[SKIP] apps.json に対象アプリがありません'
     return
 }
@@ -42,31 +75,24 @@ foreach ($app in $apps) {
     Write-Host ''
     Write-Host "→ $name ($id)" -ForegroundColor White
 
-    # 既にインストール済か確認
-    $installed = winget list --id $id --exact --accept-source-agreements 2>&1 | Select-String -Pattern $id
-    if ($installed) {
+    if (Test-AppInstalled -Id $id) {
         Write-Host '  [SKIP] 既にインストール済' -ForegroundColor Gray
         continue
     }
 
-    # インストール実行
-    try {
-        winget install --id $id --exact --silent `
-            --accept-package-agreements --accept-source-agreements `
-            --disable-interactivity 2>&1 | Tee-Object -Variable wingetOut
+    & winget install --id $id --exact --silent `
+        --accept-package-agreements --accept-source-agreements `
+        --disable-interactivity
+    $code = $LASTEXITCODE
 
-        # winget は exit code 0 でも内部失敗があり得るため、再確認
-        $verifyInstalled = winget list --id $id --exact --accept-source-agreements 2>&1 | Select-String -Pattern $id
-        if ($verifyInstalled) {
-            Write-Host "  [OK] $name インストール完了" -ForegroundColor Green
-        } else {
-            Write-Host "  [WARN] $name インストール後に検出できず" -ForegroundColor Yellow
-            $failed += $app
-        }
-    } catch {
-        Write-Host "  [ERROR] $name インストール失敗: $_" -ForegroundColor Red
+    if ($code -eq 0 -or (Test-AppInstalled -Id $id)) {
+        Write-Host "  [OK] $name インストール完了" -ForegroundColor Green
+    } else {
+        Write-Host "  [WARN] $name インストールに失敗 (winget exit code: $code)" -ForegroundColor Yellow
         if ($app.required -eq $true) {
             $failed += $app
+        } else {
+            Write-Host '  必須ではないので続行します' -ForegroundColor Gray
         }
     }
 }

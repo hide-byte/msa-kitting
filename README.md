@@ -11,10 +11,11 @@ MSA（株式会社マルチサービスエージェント）の新規 Windows PC
 ## Phase 1 のスコープ（このリポジトリの現状）
 
 ✅ 含まれるもの
-- Windows 標準アプリの不要削除・電源プラン設定
-- 標準アプリの一括インストール（Chrome / Acrobat Reader 等、`config/apps.json` で管理）
+- Windows 標準アプリの不要削除・電源プラン設定・エクスプローラ表示設定
+- Dell プリインストールの販促系アプリ削除、McAfee の削除試行（失敗時は手動案内）
+- 標準アプリの一括インストール（Chrome / Acrobat Reader / Dell Command Update 等、`config/apps.json` で管理）
 - 端末番号・利用者名の対話取得 → ローカル CSV 保存（資産台帳の起点）
-- 失敗時のログ自動保全
+- 失敗時のログ自動保全（ログ末尾に `RESULT: SUCCESS` / `RESULT: FAILED`）
 
 ⏳ Phase 1.5 以降（情報入手待ち）
 - Outlook（キヤノネット）メール設定
@@ -48,4 +49,5 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercont
 - 設定値の追加: `config/apps.json` を編集 → push すれば次回キッティングから反映
 - 機密値（VPN PSK 等）: `config/secrets/` は `.gitignore` で除外。1Password 共有 vault 経由 or 対話入力で扱う
 - Task Contract: `TC-2026-05-27-002` で Phase 1 のスコープを固定
-- 検証: hide さん環境の Windows 11 VM（Hyper-V or UTM）で実機テスト推奨
+- 検証: push のたびに GitHub Actions の Windows runner で `bootstrap.ps1` → `setup.ps1` を **Windows PowerShell 5.1** で通す（`.github/workflows/smoke-test.yml`）。UTF-8 BOM の有無も CI で落とす
+- 文字コード: 全 `.ps1` は **UTF-8 BOM 付き** 必須（Windows PowerShell 5.1 は BOM 無しを Shift-JIS として読み、日本語が化ける）。新規ファイルを足したら BOM を付けること

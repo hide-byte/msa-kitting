@@ -31,6 +31,12 @@
       "name": "VLC media player",
       "required": false,
       "note": "動画再生（社内動画教材等で使用）"
+    },
+    {
+      "id": "Dell.CommandUpdate",
+      "name": "Dell Command | Update",
+      "required": false,
+      "note": "Dell 公式のドライバ・BIOS 更新ツール。Dell 以外の PC では winget が失敗するが必須ではないので続行する。インストール後にスタートメニューから開いて「確認」→ 更新適用"
     }
   ]
 }
