@@ -105,7 +105,7 @@ jobs:
         run: |
           .\setup.ps1 -RepoRoot $PWD -SkipModules @('Install-Apps', 'Register-Asset')
 
-      - name: Verify transcript log has RESULT: SUCCESS
+      - name: "Verify transcript log has RESULT: SUCCESS"
         shell: pwsh
         run: |
           $log = Get-ChildItem C:\msa-kitting-logs\setup-*.log -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | Select-Object -Last 1
