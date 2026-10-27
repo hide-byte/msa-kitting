@@ -145,8 +145,8 @@ catch {
     Write-Host '【次のアクション】' -ForegroundColor Yellow
     Write-Host "  1. ログファイルをメモ帳で開く: $logPath" -ForegroundColor Yellow
     Write-Host '  2. Ctrl + A → Ctrl + C で全文コピー' -ForegroundColor Yellow
-    Write-Host '  3. Claude のチャット画面に貼る + 「MSA キッティングで失敗しました」と添える' -ForegroundColor Yellow
-    Write-Host '  4. Claude の指示に従って次のコマンドを貼る（同じコマンドの再実行で続きから進みます）' -ForegroundColor Yellow
+    Write-Host '  3. hide さんに Chatwork で送る（「MSA キッティングで失敗しました」と添えて）' -ForegroundColor Yellow
+    Write-Host '  4. 返ってきた指示どおりにコマンドを貼る（同じコマンドの再実行で続きから進みます）' -ForegroundColor Yellow
     Write-Host 'RESULT: FAILED' -ForegroundColor Red
     Write-Host ''
 }

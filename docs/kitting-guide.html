@@ -157,6 +157,7 @@
     <div class="meta">
       <span>対象: Dell ノート 2 台（Core i5-1334U / Windows 11 Pro）</span>
       <span>所要: 1 台 40〜70 分</span>
+      <span>作業する人: 仁科さん</span>
       <span>必要スキル: コピーと貼り付けができれば OK</span>
     </div>
     <div class="pcbar">
@@ -187,7 +188,7 @@
     <table>
       <tr><th>もの</th><th>どこから</th></tr>
       <tr><td>社内 Wi-Fi の名前（SSID）とパスワード</td><td>岡島さん</td></tr>
-      <tr><td>端末番号（例: <code>MSA-PC-043</code>）</td><td>Excel の PC 台帳で、次の番号を 2 つ採番</td></tr>
+      <tr><td>端末番号（例: <code>MSA-PC-043</code>）</td><td>hide さんから受け取る（台帳の次の番号・2 台分）</td></tr>
       <tr><td>利用者の名前</td><td>その PC を使う人</td></tr>
       <tr><td>ローカルアカウント名とパスワード</td><td>岡島さんの規約どおり</td></tr>
       <tr><td>このページを見る端末（スマホ推奨）</td><td>手元</td></tr>
@@ -328,7 +329,7 @@
       <pre id="cmd">Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex</pre>
       <button class="copy" type="button" data-copy="cmd" id="copy-cmd">コピー</button>
     </div>
-    <p class="small muted">スマホで見ている場合: 上のコピーボタンは PC 側では使えないので、PC の Edge でこのページを開いてコピーするか、文字を見ながら打ち込んでください（長いので Edge で開くのがおすすめ）。</p>
+    <p class="small muted">おすすめ: 新しい PC の Edge で <code>hide-byte.github.io/msa-kitting</code> を開くと、このページの「コピー」ボタンがそのまま使えます。スマホだけで進める場合は、文字を見ながら打ち込んでください（半角・大文字小文字そのまま）。</p>
     <div class="shot">
       <div class="term"><span class="w">PS C:\Users\msa-user&gt;</span> Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex
 
@@ -456,7 +457,7 @@
   <section class="step" id="step7">
     <h2><span class="num">7</span>台帳に記録して連絡<span class="time">5 分</span></h2>
     <p>端末情報（シリアル番号・型番・OS など）が <code>C:\msa-kitting-logs\assets-日付.csv</code> に保存されています。メモ帳で開いて、内容を PC 台帳（Excel / スプレッドシート）にコピーしてください。</p>
-    <p>そのあと hide さん or 岡島さんに <b>「キッティング完了しました」</b> と連絡。メール・VPN・共有フォルダ・プリンタは別途設定します。</p>
+    <p>そのあと hide さんに Chatwork で <b>「キッティング完了しました」</b> と連絡。メール・VPN・共有フォルダ・プリンタは別途設定します。</p>
     <div class="note ok">2 台目も同じ手順です。ページ上部で「2 台目」に切り替えるとチェックが別に記憶されます。</div>
     <div class="done-row"><input type="checkbox" class="done" id="done-step7" data-step="7"><label for="done-step7">台帳に記録して連絡した</label></div>
   </section>
@@ -475,17 +476,17 @@
 <span class="y">【次のアクション】
   1. ログファイルをメモ帳で開く: C:\msa-kitting-logs\setup-20261027-101530.log
   2. Ctrl + A → Ctrl + C で全文コピー
-  3. Claude のチャット画面に貼る + 「MSA キッティングで失敗しました」と添える
-  4. Claude の指示に従って次のコマンドを貼る</span>
+  3. hide さんに Chatwork で送る（「MSA キッティングで失敗しました」と添えて）
+  4. 返ってきた指示どおりにコマンドを貼る（同じコマンドの再実行で続きから進みます）</span>
 <span class="r">RESULT: FAILED</span></div>
-      <div class="cap">画面 J: 赤い枠が出ても慌てない。書いてあるとおりログを Claude に貼る</div>
+      <div class="cap">画面 J: 赤い枠が出ても慌てない。書いてあるとおりログを hide さんに送る</div>
     </div>
     <ol class="flow">
       <li>エクスプローラで <code>C:\msa-kitting-logs</code> を開く</li>
       <li>一番新しい <code>setup-日付.log</code> を<b>メモ帳</b>で開く</li>
       <li><kbd>Ctrl</kbd>+<kbd>A</kbd> → <kbd>Ctrl</kbd>+<kbd>C</kbd> で全文コピー</li>
-      <li><a href="https://claude.ai/" target="_blank" rel="noopener">Claude のチャット</a>に下の文を貼り、その後ろにログを <kbd>Ctrl</kbd>+<kbd>V</kbd></li>
-      <li>Claude が返したコマンドをターミナルに貼って <kbd>Enter</kbd></li>
+      <li>hide さんへの Chatwork に下の文を貼り、その後ろにログを <kbd>Ctrl</kbd>+<kbd>V</kbd> して送る</li>
+      <li>hide さんから返ってきたコマンドをターミナルに貼って <kbd>Enter</kbd></li>
     </ol>
     <div class="cmdbox">
       <pre id="tmpl">MSA キッティングで失敗しました。ログ全文を貼ります：

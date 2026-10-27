@@ -59,7 +59,7 @@ function Write-Fatal {
     foreach ($h in $Hints) { Write-Host "  - $h" -ForegroundColor Yellow }
     Write-Host ''
     Write-Host 'このウィンドウは閉じないでください。' -ForegroundColor Yellow
-    Write-Host '上に表示された内容（赤い行とその前後）をコピーして、hide さん または Claude のチャットに貼ってください。' -ForegroundColor Yellow
+    Write-Host '上に表示された内容（赤い行とその前後）をコピーして、hide さんに Chatwork で送ってください。' -ForegroundColor Yellow
     Write-Host 'RESULT: FAILED (bootstrap)' -ForegroundColor Red
     Write-Host ''
 }
@@ -145,7 +145,7 @@ try {
     Write-Fatal "セットアップ途中で失敗しました: $_" @(
         'C:\msa-kitting-logs フォルダを開く',
         '一番新しい setup-日付.log をメモ帳で開く',
-        'Ctrl + A → Ctrl + C で全文コピーして Claude のチャットに貼る'
+        'Ctrl + A → Ctrl + C で全文コピーして hide さんに Chatwork で送る'
     )
     return
 }
