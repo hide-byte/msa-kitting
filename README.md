@@ -30,7 +30,9 @@ MSA（株式会社マルチサービスエージェント）の新規 Windows PC
 
 ## 使い方（社員向け簡易版）
 
-詳しくは [`docs/employee-guide.md`](docs/employee-guide.md) を読んでください。
+画面付きガイド（仁科さん向け・サインイン不要）: **https://hide-byte.github.io/msa-kitting/**
+印刷・Chatwork 添付用 PDF: https://hide-byte.github.io/msa-kitting/MSA-kitting-guide.pdf
+文字だけの版: [`docs/employee-guide.md`](docs/employee-guide.md)。ガイドの元ファイルは `docs/index.html`（GitHub Pages が `docs/` を配信）。
 
 **社員に渡す 1 行コマンド**:
 
@@ -47,6 +49,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercont
 ## hide さん向け運用メモ
 
 - 設定値の追加: `config/apps.json` を編集 → push すれば次回キッティングから反映
+- ガイド更新: `docs/index.html` を編集 → push で 1〜2 分後に Pages に反映。PDF は再生成が必要（CC に「PDF 作り直して」と依頼）
 - 機密値（VPN PSK 等）: `config/secrets/` は `.gitignore` で除外。1Password 共有 vault 経由 or 対話入力で扱う
 - Task Contract: `TC-2026-05-27-002` で Phase 1 のスコープを固定
 - 検証: push のたびに GitHub Actions の Windows runner で `bootstrap.ps1` → `setup.ps1` を **Windows PowerShell 5.1** で通す（`.github/workflows/smoke-test.yml`）。UTF-8 BOM の有無も CI で落とす
