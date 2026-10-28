@@ -53,4 +53,6 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercont
 - 機密値（VPN PSK 等）: `config/secrets/` は `.gitignore` で除外。1Password 共有 vault 経由 or 対話入力で扱う
 - Task Contract: `TC-2026-05-27-002` で Phase 1 のスコープを固定
 - 検証: push のたびに GitHub Actions の Windows runner で `bootstrap.ps1` → `setup.ps1` を **Windows PowerShell 5.1** で通す（`.github/workflows/smoke-test.yml`）。UTF-8 BOM の有無も CI で落とす
-- 文字コード: 全 `.ps1` は **UTF-8 BOM 付き** 必須（Windows PowerShell 5.1 は BOM 無しを Shift-JIS として読み、日本語が化ける）。新規ファイルを足したら BOM を付けること
+- 文字コード（CI で機械チェック）:
+  - `setup.ps1` と `modules/*.ps1` は **UTF-8 BOM 付き** 必須（Windows PowerShell 5.1 は BOM 無しをファイル実行時に Shift-JIS として読み、日本語が化ける）
+  - `bootstrap.ps1` だけは **BOM なし** 必須（`irm | iex` で文字列として評価され、5.1 の `irm` は BOM を U+FEFF として返すので 1 行目がコマンド扱いになり ParserError になる）
