@@ -197,6 +197,7 @@
     <table>
       <tr><th>もの</th><th>どこから</th></tr>
       <tr><td>社内 Wi-Fi の名前（SSID）とパスワード</td><td>岡島さん</td></tr>
+      <tr><td><code>Fortinet_CA_SSL.cer</code>（社内ネットワーク用の証明書ファイル）</td><td>hide さんから Chatwork で受け取り、新しい PC のデスクトップに保存</td></tr>
       <tr><td>端末番号（例: <code>MSA-PC-043</code>）</td><td>hide さんから受け取る（台帳の次の番号・2 台分）</td></tr>
       <tr><td>利用者の名前</td><td>その PC を使う人</td></tr>
       <tr><td>ローカルアカウント名とパスワード</td><td>岡島さんの規約どおり</td></tr>
@@ -267,7 +268,27 @@
       <div class="cap">画面 C: 岡島さんの規約どおりのアカウント名を入力。次の画面でパスワードと秘密の質問</div>
     </div>
 
-    <div class="note">社内 Wi-Fi につないでも Edge で Web ページが開かない場合は、hide さんから渡される <b>FortiClient（社内ネットワーク用のセキュリティソフト）</b> を先にインストールしてから次へ進んでください。</div>
+    <h3>1-b. 社内ネットワーク用の証明書を入れる（必須）</h3>
+    <p>社内 Wi-Fi は通信を検査するしくみ（FortiGate）が入っているため、hide さんから渡される <b><code>Fortinet_CA_SSL.cer</code></b> を入れないと Edge で Web が開かず、この先のダウンロードも失敗します。デスクトップに保存してから、次の順にクリックします。</p>
+    <ol class="flow">
+      <li>ファイルをダブルクリック → 「証明書のインストール...」</li>
+      <li>保存場所: <b>ローカル コンピューター</b> → 次へ →（許可の確認が出たら「はい」）</li>
+      <li><b>証明書をすべて次のストアに配置する</b> → 参照 → <b>信頼されたルート証明機関</b> → OK → 次へ → 完了 ↓画面 1b</li>
+      <li>「セキュリティ警告」が出たら <b>はい</b> → 「正しくインポートされました」で完了。Edge で Web が開くことを確認</li>
+    </ol>
+    <div class="shot">
+      <div class="win">
+        <div class="win-title">証明書のインポート ウィザード<span class="ctl">✕</span></div>
+        <div class="win-body">
+          <h4 style="font-size:15px">証明書ストア</h4>
+          <p class="sub">証明書ストアは、証明書が保管されるシステム上の領域です。</p>
+          <div class="opt"><span class="radio"></span><div><b>証明書の種類に基づいて、自動的に証明書ストアを選択する</b></div></div>
+          <div class="opt sel hl"><span class="call">1b</span><span class="radio"></span><div><b>証明書をすべて次のストアに配置する</b><span>証明書ストア: 信頼されたルート証明機関</span></div></div>
+          <div class="btnrow"><span class="btn-win sec">戻る</span><span class="btn-win">次へ</span></div>
+        </div>
+      </div>
+      <div class="cap">画面 1b: 「信頼されたルート証明機関」を選ぶのがポイント。証明書の名前は FGT60FTK21097233 と表示されます</div>
+    </div>
     <div class="note ok">PC によっては画面 A・B（個人用／職場または学校用、ドメインに参加）が出ないまま、名前の入力に進むことがあります。<b>Microsoft アカウント（メールアドレス）を聞かれずに、名前とパスワードを入れてデスクトップまで進めたなら、そのまま OK</b> です。</div>
     <details>
       <summary>「代わりにドメインに参加する」が画面 B に無いとき</summary>

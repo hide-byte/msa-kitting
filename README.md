@@ -34,6 +34,8 @@ MSA（株式会社マルチサービスエージェント）の新規 Windows PC
 印刷・Chatwork 添付用 PDF: https://hide-byte.github.io/msa-kitting/MSA-kitting-guide.pdf
 文字だけの版: [`docs/employee-guide.md`](docs/employee-guide.md)。ガイドの元ファイルは `docs/index.html`（GitHub Pages が `docs/` を配信）。
 
+**前提（MSA 社内ネットワーク）**: FortiGate (FG-60F) が HTTPS を SSL 検査するため、先に `Fortinet_CA_SSL.cer`（検査用 CA、CN=FGT60FTK21097233）を「信頼されたルート証明機関」に入れないと Web も bootstrap のダウンロードも通らない。ファイルは hide さんが Chatwork で配布する（公開リポには置かない）。同じ理由で winget の Microsoft Store ソースは証明書ピン留めに失敗する（0x8A15005E）ので、スクリプトは `--source winget` 固定。
+
 **社員に渡す 1 行コマンド**:
 
 ```powershell
