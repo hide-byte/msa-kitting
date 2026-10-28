@@ -267,6 +267,7 @@
       <div class="cap">画面 C: 岡島さんの規約どおりのアカウント名を入力。次の画面でパスワードと秘密の質問</div>
     </div>
 
+    <div class="note ok">PC によっては画面 A・B（個人用／職場または学校用、ドメインに参加）が出ないまま、名前の入力に進むことがあります。<b>Microsoft アカウント（メールアドレス）を聞かれずに、名前とパスワードを入れてデスクトップまで進めたなら、そのまま OK</b> です。</div>
     <details>
       <summary>「代わりにドメインに参加する」が画面 B に無いとき</summary>
       <div>
@@ -367,6 +368,7 @@
       <div class="cap">画面 F: 貼り付けて Enter を押すとこのように流れ始める。アプリのインストールは 5〜30 分（Acrobat Reader が大きい）</div>
     </div>
     <div class="note">画面が止まっているように見えても、ダウンロード中のことがあります。30 分動かなければ <a href="#fail">失敗したとき</a> へ。</div>
+    <div class="note bad">貼った直後に<b>赤い文字がたくさん出て止まった</b>ら、ウィンドウはそのままで <b>5 分待ってから同じコマンドをもう一度</b>貼ってください（配布サーバーの古いファイルを掴んだときの症状です）。2 回目も同じなら <a href="#fail">失敗したとき</a> へ。</div>
     <div class="done-row"><input type="checkbox" class="done" id="done-step3" data-step="3"><label for="done-step3">水色の帯「MSA キッティング ブートストラップ」が出て流れ始めた</label></div>
   </section>
 
@@ -474,7 +476,9 @@
   <!-- fail -->
   <section class="step" id="fail">
     <h2><span class="num" style="background:var(--bad)">!</span>失敗したとき</h2>
-    <p>赤い枠で <b>「キッティング途中で失敗」</b> と出たら、<b>ウィンドウを閉じずに</b>次の手順を。壊れることはありません。同じコマンドをもう一度貼って実行しても大丈夫です（終わった作業は自動で飛ばします）。</p>
+    <div class="note ok"><b>まず試すこと</b>: ウィンドウはそのままで、同じコマンドをもう一度貼って <kbd>Enter</kbd>。これで直ることが多いです（終わった作業は自動で飛ばします）。</div>
+    <div class="note bad"><b>赤い文字が大量に出て、その中に「ParserError」「CmdletBinding」「param」が見える</b>: 配布サーバーの古いファイルを掴んでいます。<b>5 分待ってから</b>同じコマンドをもう一度。2 回目も同じなら下の手順で hide さんに送ってください。</div>
+    <p>赤い枠で <b>「キッティング途中で失敗」</b> と出たら、<b>ウィンドウを閉じずに</b>次の手順を。壊れることはありません。</p>
     <div class="shot">
       <div class="term"><span class="r">[ERROR] アプリ一括インストール (winget) 失敗: 必須アプリのインストールに失敗: Google Chrome</span>
 
@@ -508,6 +512,7 @@
     <table>
       <tr><th>画面に出る文</th><th>意味と対処</th></tr>
       <tr><td>管理者権限が必要です</td><td>「(管理者)」でないターミナルで実行した。<a href="#step2">ステップ 2</a> からやり直し</td></tr>
+      <tr><td>貼った直後に赤い文字がたくさん。「iex : 発生場所 行:24」「予期しない属性 'CmdletBinding'」</td><td>配布サーバーの古いファイルを受け取った。5 分待って同じコマンドを再実行。2 回目も同じなら hide さんに画面の写真を送る</td></tr>
       <tr><td>ダウンロードに失敗しました</td><td>Wi-Fi が切れている。Edge で https://github.com が開けるか確認</td></tr>
       <tr><td>winget が使えません</td><td>Microsoft Store を開いて「アプリ インストーラー」を更新 → 同じコマンドを再実行</td></tr>
       <tr><td>日本語が「????」や記号になる</td><td>動作には影響なし。hide さんに「文字化けしている」と伝える</td></tr>
