@@ -12,6 +12,11 @@
   stderr を 2>&1 で受けると NativeCommandError 例外になるため、本モジュールは
   'Continue' で動かし、失敗判定は明示的に行う。
 
+  常に --source winget を指定する。MSA 社内ネットワークは FortiGate が SSL 検査で
+  証明書を差し替えるため、Microsoft Store ソース (msstore) は証明書ピン留めに失敗し
+  0x8A15005E「サーバー証明書が、予期された値のいずれにも一致しませんでした」で
+  全インストールが止まる。Store ソースは使わない。
+
 .PARAMETER ConfigPath
   apps.json のパス。形式は { "apps": [ { "id": "Google.Chrome", "name": "Google Chrome", "required": true } ] }
 #>
@@ -30,7 +35,7 @@ function Test-WingetAvailable {
 
 function Test-AppInstalled {
     param([string]$Id)
-    $out = & winget list --id $Id --exact --accept-source-agreements 2>$null | Out-String
+    $out = & winget list --id $Id --exact --source winget --accept-source-agreements 2>$null | Out-String
     return ($out -match [regex]::Escape($Id))
 }
 
@@ -52,7 +57,7 @@ if (-not (Test-WingetAvailable)) {
 
 # ソース情報を最新化（新品 PC の初回は古いことがある）
 Write-Host 'winget のパッケージ情報を更新中...' -ForegroundColor Gray
-& winget source update --disable-interactivity 2>$null | Out-Null
+& winget source update --name winget --disable-interactivity 2>$null | Out-Null
 
 if (-not (Test-Path $ConfigPath)) {
     throw "設定ファイルが見つかりません: $ConfigPath"
@@ -80,9 +85,10 @@ foreach ($app in $apps) {
         continue
     }
 
-    & winget install --id $id --exact --silent `
+    # 2>&1 | Out-Host: winget のメッセージを画面と transcript ログの両方に残す（失敗時の切り分け用）
+    & winget install --id $id --exact --silent --source winget `
         --accept-package-agreements --accept-source-agreements `
-        --disable-interactivity
+        --disable-interactivity 2>&1 | Out-Host
     $code = $LASTEXITCODE
 
     if ($code -eq 0 -or (Test-AppInstalled -Id $id)) {

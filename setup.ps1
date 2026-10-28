@@ -93,23 +93,23 @@ try {
     $modulesDir = Join-Path $RepoRoot 'modules'
     $configDir = Join-Path $RepoRoot 'config'
 
-    # Step 1: Windows 既定設定（＋Dell 不要ソフト削除）
+    # Step 1: 端末資産登録（対話）— 最初に聞いて、あとは席を離れても進むようにする
+    Invoke-Module -Name '端末資産登録' `
+        -SkipKey 'Register-Asset' `
+        -Path (Join-Path $modulesDir 'Register-Asset.ps1') `
+        -ModuleArgs @{ OutputDir = $logDir }
+
+    # Step 2: Windows 既定設定（＋Dell 不要ソフト削除）
     Invoke-Module -Name 'Windows 既定設定' `
         -SkipKey 'Set-WindowsDefaults' `
         -Path (Join-Path $modulesDir 'Set-WindowsDefaults.ps1') `
         -ModuleArgs @{ ConfigPath = (Join-Path $configDir 'windows-defaults.json') }
 
-    # Step 2: アプリ一括インストール
+    # Step 3: アプリ一括インストール（時間がかかる）
     Invoke-Module -Name 'アプリ一括インストール (winget)' `
         -SkipKey 'Install-Apps' `
         -Path (Join-Path $modulesDir 'Install-Apps.ps1') `
         -ModuleArgs @{ ConfigPath = (Join-Path $configDir 'apps.json') }
-
-    # Step 3: 端末資産登録（対話）
-    Invoke-Module -Name '端末資産登録' `
-        -SkipKey 'Register-Asset' `
-        -Path (Join-Path $modulesDir 'Register-Asset.ps1') `
-        -ModuleArgs @{ OutputDir = $logDir }
 
     # 完了サマリ
     Write-Host ''

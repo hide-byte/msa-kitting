@@ -267,6 +267,7 @@
       <div class="cap">画面 C: 岡島さんの規約どおりのアカウント名を入力。次の画面でパスワードと秘密の質問</div>
     </div>
 
+    <div class="note">社内 Wi-Fi につないでも Edge で Web ページが開かない場合は、hide さんから渡される <b>FortiClient（社内ネットワーク用のセキュリティソフト）</b> を先にインストールしてから次へ進んでください。</div>
     <div class="note ok">PC によっては画面 A・B（個人用／職場または学校用、ドメインに参加）が出ないまま、名前の入力に進むことがあります。<b>Microsoft アカウント（メールアドレス）を聞かれずに、名前とパスワードを入れてデスクトップまで進めたなら、そのまま OK</b> です。</div>
     <details>
       <summary>「代わりにドメインに参加する」が画面 B に無いとき</summary>
@@ -334,7 +335,7 @@
   <!-- 3 -->
   <section class="step" id="step3">
     <h2><span class="num">3</span>コマンドを貼り付けて Enter<span class="time">1 分 + 待ち 5〜30 分</span></h2>
-    <p>下の 1 行をコピーして、黒い画面の中で <b>右クリック</b>（それだけで貼り付けになります）→ <kbd>Enter</kbd>。</p>
+    <p>下の 1 行をコピーして、黒い画面の中で <b>右クリック</b>（それだけで貼り付けになります）→ <kbd>Enter</kbd>。貼った直後に端末番号などを聞かれるので、席を離れずに <a href="#step4">ステップ 4</a> の入力まで済ませてください。そのあとは 5〜30 分放置で OK です。</p>
     <div class="cmdbox">
       <pre id="cmd">Set-ExecutionPolicy Bypass -Scope Process -Force; irm https://raw.githubusercontent.com/hide-byte/msa-kitting/main/bootstrap.ps1 | iex</pre>
       <button class="copy" type="button" data-copy="cmd" id="copy-cmd">コピー</button>
@@ -355,17 +356,12 @@
 ╚══════════════════════════════════════════╝</span>
 <span class="d">ログ保存先: C:\msa-kitting-logs\setup-20261027-101530.log</span>
 
-<span class="c">▶ Windows 既定設定</span>
+<span class="c">▶ 端末資産登録</span>
 <span class="d">────────────────────────────────────────────</span>
-電源プランをバランスに設定...
-  <span class="g">現在の電源プラン: Balanced</span>
-...
-<span class="c">▶ アプリ一括インストール (winget)</span>
-<span class="d">────────────────────────────────────────────</span>
-対象アプリ数: 6
-<span class="w">→ Google Chrome (Google.Chrome)</span>
-  <span class="g">[OK] Google Chrome インストール完了</span></div>
-      <div class="cap">画面 F: 貼り付けて Enter を押すとこのように流れ始める。アプリのインストールは 5〜30 分（Acrobat Reader が大きい）</div>
+<span class="d">端末番号と利用者名を入力してください（分からない項目は Enter で飛ばせます）</span>
+
+端末番号 (例: MSA-PC-042): <span class="cur"> </span></div>
+      <div class="cap">画面 F: 貼り付けて Enter を押すと水色の帯が出て、すぐに端末番号を聞かれる（次のステップ）。4 つ答えると Windows の設定とアプリのインストールが自動で流れる</div>
     </div>
     <div class="note">画面が止まっているように見えても、ダウンロード中のことがあります。30 分動かなければ <a href="#fail">失敗したとき</a> へ。</div>
     <div class="note bad">貼った直後に<b>赤い文字がたくさん出て止まった</b>ら、ウィンドウはそのままで <b>5 分待ってから同じコマンドをもう一度</b>貼ってください（配布サーバーの古いファイルを掴んだときの症状です）。2 回目も同じなら <a href="#fail">失敗したとき</a> へ。</div>
@@ -375,7 +371,7 @@
   <!-- 4 -->
   <section class="step" id="step4">
     <h2><span class="num">4</span>聞かれたら入力<span class="time">2 分</span></h2>
-    <p>アプリのインストールが終わると、4 つ聞かれます。入力して <kbd>Enter</kbd>。分からない項目は何も打たずに <kbd>Enter</kbd> で飛ばせます。</p>
+    <p>コマンドを貼った直後に、4 つ聞かれます。入力して <kbd>Enter</kbd>。分からない項目は何も打たずに <kbd>Enter</kbd> で飛ばせます。4 つ答えると Windows の設定とアプリのインストールが自動で流れます（5〜30 分、席を離れて OK）。</p>
     <div class="tablewrap">
     <table>
       <tr><th>聞かれること</th><th>入力例</th><th>メモ</th></tr>
@@ -406,8 +402,8 @@
     <h2><span class="num">5</span>完了画面を確認<span class="time">1 分</span></h2>
     <p>最後に <b>緑の枠で「キッティング Phase 1 完了」</b> と出れば成功です。そのすぐ下に「残りの手作業」が 3 つ表示されます（次のステップ）。</p>
     <div class="shot">
-      <div class="term"><span class="g">[OK] 端末情報を保存しました</span>
-<span class="d">  CSV: C:\msa-kitting-logs\assets-20261027.csv</span>
+      <div class="term">  <span class="g">[OK] Dell Command | Update インストール完了</span>
+<span class="g">[OK] アプリ一括インストール (winget) 完了</span>
 
 <span class="g">════════════════════════════════════════════
   ✅ キッティング Phase 1 完了
@@ -513,6 +509,7 @@
       <tr><th>画面に出る文</th><th>意味と対処</th></tr>
       <tr><td>管理者権限が必要です</td><td>「(管理者)」でないターミナルで実行した。<a href="#step2">ステップ 2</a> からやり直し</td></tr>
       <tr><td>貼った直後に赤い文字がたくさん。「iex : 発生場所 行:24」「予期しない属性 'CmdletBinding'」</td><td>配布サーバーの古いファイルを受け取った。5 分待って同じコマンドを再実行。2 回目も同じなら hide さんに画面の写真を送る</td></tr>
+      <tr><td>「サーバー証明書が、予期された値のいずれにも一致しませんでした」(0x8a15005e)、「ソースの検索中に失敗しました: msstore」</td><td>社内ネットワークのセキュリティ（FortiGate）と Microsoft Store の相性問題。スクリプト側で対応済みなので、同じコマンドをもう一度実行する</td></tr>
       <tr><td>ダウンロードに失敗しました</td><td>Wi-Fi が切れている。Edge で https://github.com が開けるか確認</td></tr>
       <tr><td>winget が使えません</td><td>Microsoft Store を開いて「アプリ インストーラー」を更新 → 同じコマンドを再実行</td></tr>
       <tr><td>日本語が「????」や記号になる</td><td>動作には影響なし。hide さんに「文字化けしている」と伝える</td></tr>
