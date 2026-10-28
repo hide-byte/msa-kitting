@@ -1,4 +1,3 @@
-﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   MSA キッティング ブートストラップ。社員はこの 1 ファイルを起動するだけ。
@@ -12,6 +11,10 @@
   ※ このファイルは `irm ... | iex` で実行される。iex の中で exit を呼ぶと
     PowerShell ウィンドウごと閉じてエラーが読めなくなるため、exit は一切使わない。
     成否は $global:MSA_KITTING_FAILED（$true / $false）で呼び出し元に伝える。
+  ※ このファイルだけは UTF-8 の「BOM なし」で保存する（他の .ps1 は BOM あり）。
+    Windows PowerShell 5.1 の irm は BOM を文字 U+FEFF として返すため、BOM があると
+    1 行目がコマンド扱いになり param ブロックが先頭でなくなって ParserError になる。
+    日本語は HTTP の charset=utf-8 で正しく復号されるので BOM は不要。
 
 .EXAMPLE
   # Win + X → 「ターミナル（管理者）」に貼る:
@@ -35,6 +38,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $global:MSA_KITTING_FAILED = $true
+
+# irm | iex では引数を渡せないため、CI 等は環境変数でスキップ指定する（例: MSA_KITTING_SKIP=Register-Asset）
+if ($SkipModules.Count -eq 0 -and $env:MSA_KITTING_SKIP) {
+    $SkipModules = @($env:MSA_KITTING_SKIP -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
 
 # 日本語・罫線の表示崩れ防止（Windows PowerShell 5.1 対策）
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }

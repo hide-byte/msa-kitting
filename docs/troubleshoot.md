@@ -100,3 +100,18 @@ Issue テンプレ:
 ## 解決方法
 （CC が出した解決コマンド or 手動対応内容）
 ```
+
+### 6. コマンド貼り付け直後に ParserError（CmdletBinding / param）
+
+```
+iex : 発生場所 行:24 文字:1
++ [CmdletBinding()]
+予期しない属性 'CmdletBinding' です。
+式またはステートメントのトークン 'param' を使用できません。
+```
+
+**原因**: 配布された `bootstrap.ps1` の先頭に UTF-8 BOM が入っている（Windows PowerShell 5.1 の `irm` は BOM を文字 U+FEFF として返すため、1 行目がコマンド扱いになり `param` が先頭でなくなる）か、CDN の古いキャッシュ（max-age 300 秒）を掴んだ。
+
+**対処（社員）**: 5 分待って同じコマンドを再実行。
+
+**対処（hide さん / CC）**: `bootstrap.ps1` は **BOM なし** が正。CI の「UTF-8 BOM check」と「parses under irm|iex conditions」が落ちていないか確認する。

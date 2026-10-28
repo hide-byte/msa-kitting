@@ -40,20 +40,26 @@ jobs:
             Write-Output "winget_available=false" >> $env:GITHUB_OUTPUT
           }
 
-      - name: UTF-8 BOM check (全 .ps1 必須)
+      # bootstrap.ps1 は irm|iex で文字列として評価されるため BOM があると PS 5.1 で ParserError。
+      # それ以外の .ps1 はファイルとして実行されるため BOM が無いと PS 5.1 で日本語が化ける。
+      - name: UTF-8 BOM check (bootstrap.ps1 は BOM なし / 他の .ps1 は BOM あり)
         shell: pwsh
         run: |
           $bad = @()
           Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
             $b = [System.IO.File]::ReadAllBytes($_.FullName)
-            if ($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF) {
-              $bad += $_.FullName
+            $hasBom = ($b.Length -ge 3 -and $b[0] -eq 0xEF -and $b[1] -eq 0xBB -and $b[2] -eq 0xBF)
+            $isBootstrap = ($_.Name -eq 'bootstrap.ps1')
+            if ($isBootstrap -and $hasBom) {
+              $bad += "$($_.Name): BOM あり（irm|iex が Windows PowerShell 5.1 で ParserError になる）"
+            } elseif (-not $isBootstrap -and -not $hasBom) {
+              $bad += "$($_.Name): BOM なし（Windows PowerShell 5.1 でファイル実行時に日本語が化ける）"
             } else {
-              Write-Host "✅ BOM OK: $($_.FullName)"
+              Write-Host "✅ $($_.Name) (BOM=$hasBom)"
             }
           }
           if ($bad.Count -gt 0) {
-            $bad | ForEach-Object { Write-Host "❌ BOM なし（Windows PowerShell 5.1 で日本語が文字化けする）: $_" -ForegroundColor Red }
+            $bad | ForEach-Object { Write-Host "❌ $_" -ForegroundColor Red }
             exit 1
           }
 
@@ -88,12 +94,24 @@ jobs:
             }
           }
 
-      # ── 本番相当: bootstrap.ps1 → (GitHub main zip 取得) → setup.ps1 を Windows PowerShell 5.1 で ──
-      - name: Run bootstrap.ps1 end-to-end under Windows PowerShell 5.1
+      # irm (PS 5.1) は BOM を U+FEFF として文字列に含めるので、同じ条件 (GetString) でパースできるか先に確認
+      - name: bootstrap.ps1 parses under irm|iex conditions (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $code = [System.Text.Encoding]::UTF8.GetString([System.IO.File]::ReadAllBytes("$PWD\bootstrap.ps1"))
+          $null = [scriptblock]::Create($code)
+          Write-Host "OK: bootstrap.ps1 parses as an iex string (first char U+$([int][char]$code[0]))"
+
+      # ── 本番と同じ 1 行: irm <raw url> | iex を Windows PowerShell 5.1 で実行 ──
+      # raw URL は commit SHA 付きにして CDN キャッシュの影響を受けないようにする
+      - name: Run the production one-liner (irm | iex) under Windows PowerShell 5.1
         if: steps.env.outputs.winget_available == 'true'
         shell: powershell
         run: |
-          .\bootstrap.ps1 -SkipModules @('Register-Asset')
+          $env:MSA_KITTING_SKIP = 'Register-Asset'
+          $url = "https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/bootstrap.ps1"
+          Write-Host "irm $url | iex"
+          Set-ExecutionPolicy Bypass -Scope Process -Force; irm $url | iex
           if ($global:MSA_KITTING_FAILED) {
             Write-Host "bootstrap reported failure" -ForegroundColor Red
             exit 1
